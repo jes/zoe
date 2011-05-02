@@ -14,7 +14,7 @@
 #define SOUTH 6
 #define WEST  7
 
-static uint64_t ray[8][64];
+static uint64_t ray[8][65];
 static uint64_t king_moves[64];
 static uint64_t knight_moves[64];
 
@@ -97,6 +97,8 @@ static void generate_rays(void) {
     int idx;
 
     for(dir = 0; dir < 8; dir++) {
+        ray[dir][64] = 0;
+
         for(tile = 0; tile < 64; tile++) {
             ray[dir][tile] = 0;
             idx = tile;
@@ -207,12 +209,50 @@ void apply_move(Game *game, Move m) {
     /* TODO: en passant, castling */
 }
 
+/* return the set of tiles that can be reached by a positive ray in the given
+ * direction from the given tile.
+ */
+static uint64_t negative_rays(Game *game, int tile, int dir) {
+    uint64_t tiles = ray[dir][tile];
+    uint64_t blocker = tiles & game->board.occupied;
+
+    /* remove all tiles beyond the first blocking tile */
+    tiles ^= ray[dir][bsr(blocker)];
+
+    return tiles;
+}
+
+/* return the set of tiles that can be reached by a positive ray in the given
+ * direction from the given tile.
+ */
+static uint64_t positive_rays(Game *game, int tile, int dir) {
+    uint64_t tiles = ray[dir][tile];
+    uint64_t blocker = tiles & game->board.occupied;
+
+    /* remove all tiles beyond the first blocking tile */
+    tiles ^= ray[dir][bsf(blocker)];
+
+    return tiles;
+}
+
+/* return the set of tiles a rook can move to from the given tile */
+static uint64_t rook_moves(Game *game, int tile) {
+    return positive_rays(game, tile, NORTH) | positive_rays(game, tile, EAST) |
+        negative_rays(game, tile, SOUTH) | negative_rays(game, tile, WEST);
+}
+
+/* return the set of tiles a bishop can move to from the given tile */
+static uint64_t bishop_moves(Game *game, int tile) {
+    return positive_rays(game, tile, NW) | positive_rays(game, tile, NE) |
+        negative_rays(game, tile, SW) | negative_rays(game, tile, SE);
+}
+
 /* return the set of all squares the given piece is able to move to, without
  * considering a king left in check */
-uint64_t generate_moves(Game *game, int piece) {
+uint64_t generate_moves(Game *game, int tile) {
     Board *board = game->board;
-    int type = board->mailbox[piece];
-    int colour = !(board->b[WHITE][OCCUPIED] & piece);
+    int type = board->mailbox[tile];
+    int colour = !(board->b[WHITE][OCCUPIED] & tile);
     uint64_t moves = 0;
 
     switch(type) {
@@ -221,11 +261,11 @@ uint64_t generate_moves(Game *game, int piece) {
         int target;
 
         if(colour == WHITE) {
-            target = piece + 8;
+            target = tile + 8;
             moves = 1ull << target;
         }
         else {
-            target = piece - 8;
+            target = tile - 8;
             moves = 1ull << target;
         }
 
@@ -233,33 +273,35 @@ uint64_t generate_moves(Game *game, int piece) {
         if(board->b.occupied & moves)
             moves = 0;
 
-        /* add on the attack squares if appropriate */
-        if((target - 1 == !colour) && (target % 8 != 0))
+        /* add on the appropriate attack squares */
+        if(target % 8 != 0)
             moves |= 1ull << (target - 1);
-        if((target + 1 == !colour) && (target % 8 != 7))
+        if(target % 8 != 7)
             moves |= 1ull << (target + 1);
         break;
 
     case KNIGHT:
-        /* TODO: all moves */
+        moves = knight_moves[tile];
         break;
 
     case BISHOP:
-        /* TODO: all moves */
+        moves = bishop_moves(game, tile);
         break;
 
     case ROOK:
-        /* TODO: all moves */
+        moves = rook_moves(game, tile);
         break;
 
     case QUEEN:
-        /* TODO: all moves */
+        moves = bishop_moves(game, tile) | rook_moves(game, tile);
         break;
 
     case KING:
-        /* TODO: all moves */
+        /* TODO: castling */
+        moves = king_moves[tile];
         break;
     }
 
-    /* TODO: castling */
+    /* return the moves, with any moves that take our own tiles removed */
+    return moves & ~board->b[colour][OCCUPIED];
 }
