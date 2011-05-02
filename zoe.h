@@ -61,6 +61,8 @@ Move best_move(Game *game);
 
 /* move.c */
 char *xboard_move(Move m);
+int is_xboard_move(const char *move);
+Move get_xboard_move(const char *move);
 void apply_move(Game *game, Move m);
 
 #endif

@@ -7,7 +7,7 @@
 
 /* reset the given board to the initial state */
 void reset_board(Board *board) {
-    int i;
+    int i, j;
 
     /* fill in the empty squares of the mailbox board */
     for(i = 16; i < 56; i++)

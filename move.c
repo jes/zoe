@@ -27,6 +27,42 @@ char *xboard_move(Move m) {
     return move;
 }
 
+/* return 1 if the given string is an xboard move and 0 otherwise */
+int is_xboard_move(const char *move) {
+    /* fail if the move is too long or short */
+    if(strlen(move) < 4 || strlen(move) > 5)
+        return 0;
+
+    /* fail if the co-ordinates are invalid */
+    if(move[0] < 'a' || move[0] > 'h' || move[1] < '1' || move[1] > '8' ||
+            move[2] < 'a' || move[2] > 'h' || move[3] < '1' || move[3] > '8')
+        return 0;
+
+    /* don't validate the promotion piece... */
+
+    return 1;
+}
+
+/* return the move for the given xboard move */
+Move get_xboard_move(const char *move) {
+    Move m;
+
+    /* set co-ordinates */
+    m.begin = ((move[0] - 'a') * 8) + (move[1] - 1);
+    m.end = ((move[2] - 'a') * 8) + (move[3] - 1);
+
+    /* set promotion piece */
+    switch(move[5]) {
+        case 'k': m.promotion = KNIGHT; break;
+        case 'b': m.promotion = BISHOP; break;
+        case 'r': m.promotion = ROOK;   break;
+        case 'q': m.promotion = QUEEN;  break;
+        default:  m.promotion = 0;      break;
+    }
+
+    return m;
+}
+
 /* apply the given move to the given game */
 void apply_move(Game *game, Move m) {
     Board *board = &(game->board);
