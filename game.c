@@ -23,4 +23,8 @@ void reset_game(Game *game) {
 
     game->turn = WHITE;
     game->quiet_moves = 0;
+
+    game->engine = BLACK;
+    game->sd = 0;
+    game->ponder = 0;
 }

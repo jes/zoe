@@ -6,24 +6,30 @@
 #ifndef ZOE_H_INC
 #define ZOE_H_INC
 
+#include <string.h>
 #include <stdint.h>
+#include <stdlib.h>
+#include <stdio.h>
 
 #define WHITE 0
 #define BLACK 1
+#define FORCE 2
 
 #define KINGSIDE  0
 #define QUEENSIDE 1
 
-#define PAWNS    0
-#define KNIGHTS  1
-#define BISHOPS  2
-#define ROOKS    3
-#define QUEENS   4
+#define PAWN     0
+#define KNIGHT   1
+#define BISHOP   2
+#define ROOK     3
+#define QUEEN    4
 #define KING     5
 #define OCCUPIED 6
+#define EMPTY    7
 
 typedef struct Board {
-    uint64_t b[2][6];
+    uint8_t mailbox[64];
+    uint64_t b[2][7];
     uint64_t occupied;
 } Board;
 
@@ -33,12 +39,28 @@ typedef struct Game {
     int can_en_passant[2][8];
     int turn;
     int quiet_moves;
+    int engine;
+    int sd;
+    int ponder;
 } Game;
+
+typedef struct Move {
+    uint8_t begin;
+    uint8_t end;
+    uint8_t promotion;
+} Move;
 
 /* game.c */
 void reset_game(Game *game);
 
 /* board.c */
 void reset_board(Board *board);
+
+/* search.c */
+Move best_move(Game *game);
+
+/* move.c */
+char *xboard_move(Move m);
+void apply_move(Game *game, Move m);
 
 #endif
