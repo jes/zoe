@@ -18,14 +18,8 @@ static uint64_t ray[8][65];
 static uint64_t king_moves[64];
 static uint64_t knight_moves[64];
 
-/* generate all movement tables */
-void generate_tables(void) {
-    generate_rays();
-    generate_king_moves();
-    generate_knight_moves();
-}
-
-static void generate_king_moves(void) {
+/* generate king movement table */
+void generate_king_moves(void) {
     int tile;
     int x, y;
     uint64_t moves;
@@ -53,9 +47,11 @@ static void generate_king_moves(void) {
             moves |= 1ull << (tile - 7);
 
         king_moves[tile] = moves;
+    }
 }
 
-static void generate_knight_moves(void) {
+/* generate knight movement table */
+void generate_knight_moves(void) {
     int tile;
     int x, y;
     uint64_t moves;
@@ -91,7 +87,7 @@ static void generate_knight_moves(void) {
 }
 
 /* generate the ray tables */
-static void generate_rays(void) {
+void generate_rays(void) {
     int offset[8] = { 9, 7, -7, -9, 8, 1, -8, -1 };
     int dir, tile;
     int idx;
@@ -121,6 +117,14 @@ static void generate_rays(void) {
         }
     }
 }
+
+/* generate all movement tables */
+void generate_tables(void) {
+    generate_rays();
+    generate_king_moves();
+    generate_knight_moves();
+}
+
 
 /* return a pointer to a static char array containing the xboard representation
  * of the given move.
@@ -165,8 +169,8 @@ Move get_xboard_move(const char *move) {
     Move m;
 
     /* set co-ordinates */
-    m.begin = ((move[0] - 'a') * 8) + (move[1] - 1);
-    m.end = ((move[2] - 'a') * 8) + (move[3] - 1);
+    m.begin = (move[0] - 'a') + ((move[1] - '1') * 8);
+    m.end = (move[2] - 'a') + ((move[3] - '1') * 8);
 
     /* set promotion piece */
     switch(move[5]) {
@@ -212,7 +216,7 @@ void apply_move(Game *game, Move m) {
 /* return the set of tiles that can be reached by a positive ray in the given
  * direction from the given tile.
  */
-static uint64_t negative_rays(Game *game, int tile, int dir) {
+uint64_t negative_rays(Game *game, int tile, int dir) {
     uint64_t tiles = ray[dir][tile];
     uint64_t blocker = tiles & game->board.occupied;
 
@@ -225,7 +229,7 @@ static uint64_t negative_rays(Game *game, int tile, int dir) {
 /* return the set of tiles that can be reached by a positive ray in the given
  * direction from the given tile.
  */
-static uint64_t positive_rays(Game *game, int tile, int dir) {
+uint64_t positive_rays(Game *game, int tile, int dir) {
     uint64_t tiles = ray[dir][tile];
     uint64_t blocker = tiles & game->board.occupied;
 
@@ -236,13 +240,13 @@ static uint64_t positive_rays(Game *game, int tile, int dir) {
 }
 
 /* return the set of tiles a rook can move to from the given tile */
-static uint64_t rook_moves(Game *game, int tile) {
+uint64_t rook_moves(Game *game, int tile) {
     return positive_rays(game, tile, NORTH) | positive_rays(game, tile, EAST) |
         negative_rays(game, tile, SOUTH) | negative_rays(game, tile, WEST);
 }
 
 /* return the set of tiles a bishop can move to from the given tile */
-static uint64_t bishop_moves(Game *game, int tile) {
+uint64_t bishop_moves(Game *game, int tile) {
     return positive_rays(game, tile, NW) | positive_rays(game, tile, NE) |
         negative_rays(game, tile, SW) | negative_rays(game, tile, SE);
 }
@@ -250,16 +254,15 @@ static uint64_t bishop_moves(Game *game, int tile) {
 /* return the set of all squares the given piece is able to move to, without
  * considering a king left in check */
 uint64_t generate_moves(Game *game, int tile) {
-    Board *board = game->board;
+    Board *board = &(game->board);
     int type = board->mailbox[tile];
     int colour = !(board->b[WHITE][OCCUPIED] & tile);
     uint64_t moves = 0;
+    int target;
 
     switch(type) {
     case PAWN:
         /* TODO: en passant, double square first moves */
-        int target;
-
         if(colour == WHITE) {
             target = tile + 8;
             moves = 1ull << target;
@@ -270,7 +273,7 @@ uint64_t generate_moves(Game *game, int tile) {
         }
 
         /* remove this move if the target square is occupied */
-        if(board->b.occupied & moves)
+        if(board->occupied & moves)
             moves = 0;
 
         /* add on the appropriate attack squares */
