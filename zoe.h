@@ -27,6 +27,8 @@
 #define OCCUPIED 6
 #define EMPTY    7
 
+#define INFINITY (1 << 60)
+
 typedef struct Board {
     uint8_t mailbox[64];
     uint64_t b[2][7];
@@ -50,6 +52,11 @@ typedef struct Move {
     uint8_t promotion;
 } Move;
 
+typedef struct MoveScore {
+    Move move;
+    int score;
+} MoveScore;
+
 /* game.c */
 void reset_game(Game *game);
 
@@ -60,9 +67,14 @@ void reset_board(Board *board);
 Move best_move(Game *game);
 
 /* move.c */
+void generate_tables(void);
 char *xboard_move(Move m);
 int is_xboard_move(const char *move);
 Move get_xboard_move(const char *move);
 void apply_move(Game *game, Move m);
+
+/* bitscan.c */
+int bsf(uint64_t n);
+int bsr(uint64_t n);
 
 #endif

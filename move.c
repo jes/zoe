@@ -5,6 +5,121 @@
 
 #include "zoe.h"
 
+#define NW 0
+#define NE 1
+#define SW 2
+#define SE 3
+#define NORTH 4
+#define EAST  5
+#define SOUTH 6
+#define WEST  7
+
+static uint64_t ray[8][64];
+static uint64_t king_moves[64];
+static uint64_t knight_moves[64];
+
+/* generate all movement tables */
+void generate_tables(void) {
+    generate_rays();
+    generate_king_moves();
+    generate_knight_moves();
+}
+
+static void generate_king_moves(void) {
+    int tile;
+    int x, y;
+    uint64_t moves;
+
+    for(tile = 0; tile < 64; tile++) {
+        x = tile % 8;
+        y = tile / 8;
+        moves = 0;
+
+        if(y != 7) /* north */
+            moves |= 1ull << (tile + 8);
+        if(y != 0) /* south */
+            moves |= 1ull << (tile - 8);
+        if(x != 7) /* east */
+            moves |= 1ull << (tile + 1);
+        if(x != 0) /* west */
+            moves |= 1ull << (tile - 1);
+        if(x != 0 && y != 7) /* north west */
+            moves |= 1ull << (tile + 7);
+        if(x != 7 && y != 7) /* north east */
+            moves |= 1ull << (tile + 9);
+        if(x != 0 && y != 0) /* south west */
+            moves |= 1ull << (tile - 9);
+        if(x != 7 && y != 0) /* south east */
+            moves |= 1ull << (tile - 7);
+
+        king_moves[tile] = moves;
+}
+
+static void generate_knight_moves(void) {
+    int tile;
+    int x, y;
+    uint64_t moves;
+
+    for(tile = 0; tile < 64; tile++) {
+        x = tile % 8;
+        y = tile / 8;
+        moves = 0;
+
+        /* north west */
+        if(y < 6 && x > 0)
+            moves |= 1ull << (tile + 15);
+        if(y < 7 && x > 1)
+            moves |= 1ull << (tile + 6);
+        /* north east */
+        if(y < 6 && x < 7)
+            moves |= 1ull << (tile + 17);
+        if(y < 7 && x < 6)
+            moves |= 1ull << (tile + 10);
+        /* south west */
+        if(y > 1 && x > 0)
+            moves |= 1ull << (tile - 17);
+        if(y > 0 && x > 1)
+            moves |= 1ull << (tile - 10);
+        /* south east */
+        if(y > 1 && x < 7)
+            moves |= 1ull << (tile - 15);
+        if(y > 0 && x < 6)
+            moves |= 1ull << (tile - 6);
+
+        knight_moves[tile] = moves;
+    }
+}
+
+/* generate the ray tables */
+static void generate_rays(void) {
+    int offset[8] = { 9, 7, -7, -9, 8, 1, -8, -1 };
+    int dir, tile;
+    int idx;
+
+    for(dir = 0; dir < 8; dir++) {
+        for(tile = 0; tile < 64; tile++) {
+            ray[dir][tile] = 0;
+            idx = tile;
+
+            while(1) {
+                /* step along the ray */
+                idx += offset[dir];
+
+                /* stop if we wrap around */
+                if((offset[dir] < 0) && ((idx%8) - (tile%8) > 0))
+                    break;
+                else if((offset[dir] > 0) && ((idx%8) - (tile%8) < 0))
+                    break;
+                else if(idx < 0 || idx > 63)
+                    break;
+
+                /* add this tile to the ray */
+                ray[dir][tile] |= 1ull < idx;
+            }
+        }
+    }
+}
+
 /* return a pointer to a static char array containing the xboard representation
  * of the given move.
  */
@@ -90,4 +205,61 @@ void apply_move(Game *game, Move m) {
     board->b[begincolour][beginpiece] |= m.end;
 
     /* TODO: en passant, castling */
+}
+
+/* return the set of all squares the given piece is able to move to, without
+ * considering a king left in check */
+uint64_t generate_moves(Game *game, int piece) {
+    Board *board = game->board;
+    int type = board->mailbox[piece];
+    int colour = !(board->b[WHITE][OCCUPIED] & piece);
+    uint64_t moves = 0;
+
+    switch(type) {
+    case PAWN:
+        /* TODO: en passant, double square first moves */
+        int target;
+
+        if(colour == WHITE) {
+            target = piece + 8;
+            moves = 1ull << target;
+        }
+        else {
+            target = piece - 8;
+            moves = 1ull << target;
+        }
+
+        /* remove this move if the target square is occupied */
+        if(board->b.occupied & moves)
+            moves = 0;
+
+        /* add on the attack squares if appropriate */
+        if((target - 1 == !colour) && (target % 8 != 0))
+            moves |= 1ull << (target - 1);
+        if((target + 1 == !colour) && (target % 8 != 7))
+            moves |= 1ull << (target + 1);
+        break;
+
+    case KNIGHT:
+        /* TODO: all moves */
+        break;
+
+    case BISHOP:
+        /* TODO: all moves */
+        break;
+
+    case ROOK:
+        /* TODO: all moves */
+        break;
+
+    case QUEEN:
+        /* TODO: all moves */
+        break;
+
+    case KING:
+        /* TODO: all moves */
+        break;
+    }
+
+    /* TODO: castling */
 }

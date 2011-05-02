@@ -18,6 +18,9 @@ int main(int argc, char **argv) {
     setvbuf(stdin, NULL, _IOLBF, 0);
     setvbuf(stdout, NULL, _IOLBF, 0);
 
+    /* build tables for move generation */
+    generate_tables();
+
     /* setup the initial game state */
     reset_game(&game);
 
