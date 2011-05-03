@@ -5,6 +5,19 @@
 
 #include "zoe.h"
 
+#define NW 0
+#define NE 1
+#define SW 2
+#define SE 3
+#define NORTH 4
+#define EAST  5
+#define SOUTH 6
+#define WEST  7
+
+static uint64_t ray[8][65];
+uint64_t king_moves[64];
+uint64_t knight_moves[64];
+
 /* reset the given board to the initial state */
 void reset_board(Board *board) {
     int i, j;
@@ -19,8 +32,8 @@ void reset_board(Board *board) {
         rank[0] = ROOK;
         rank[1] = KNIGHT;
         rank[2] = BISHOP;
-        rank[3] = KING;
-        rank[4] = QUEEN;
+        rank[3] = QUEEN;
+        rank[4] = KING;
         rank[5] = BISHOP;
         rank[6] = KNIGHT;
         rank[7] = ROOK;
@@ -49,3 +62,204 @@ void reset_board(Board *board) {
 
     board->occupied = 0xffff00000000ffffull;
 }
+
+/* draw the board to stdout */
+void draw_board(Board *board) {
+    int x, y;
+
+    printf("#\n# ");
+
+    for(y = 7; y >= 0; y--) {
+        for(x = 0; x < 8; x++) {
+            putchar("PNBRQK.."[board->mailbox[y * 8 + x]]);
+
+            if(board->occupied & (1ull << (y * 8 + x)))
+                putchar(' ');
+            else
+                putchar('.');
+        }
+        printf("\n# ");
+    }
+    printf("\n");
+}
+
+/* draw the bitboard to stdout */
+void draw_bitboard(uint64_t board) {
+    int x, y;
+
+    printf("#\n# ");
+
+    for(y = 7; y >= 0; y--) {
+        for(x = 0; x < 8; x++) {
+            if(board & (1ull << (y * 8 + x)))
+                printf("1 ");
+            else
+                printf("0 ");
+        }
+        printf("\n# ");
+    }
+
+    printf("\n");
+}
+
+/* generate king movement table */
+void generate_king_moves(void) {
+    int tile;
+    int x, y;
+    uint64_t moves;
+
+    for(tile = 0; tile < 64; tile++) {
+        x = tile % 8;
+        y = tile / 8;
+        moves = 0;
+
+        if(y != 7) /* north */
+            moves |= 1ull << (tile + 8);
+        if(y != 0) /* south */
+            moves |= 1ull << (tile - 8);
+        if(x != 7) /* east */
+            moves |= 1ull << (tile + 1);
+        if(x != 0) /* west */
+            moves |= 1ull << (tile - 1);
+        if(x != 0 && y != 7) /* north west */
+            moves |= 1ull << (tile + 7);
+        if(x != 7 && y != 7) /* north east */
+            moves |= 1ull << (tile + 9);
+        if(x != 0 && y != 0) /* south west */
+            moves |= 1ull << (tile - 9);
+        if(x != 7 && y != 0) /* south east */
+            moves |= 1ull << (tile - 7);
+
+        king_moves[tile] = moves;
+    }
+}
+
+/* generate knight movement table */
+void generate_knight_moves(void) {
+    int tile;
+    int x, y;
+    uint64_t moves;
+
+    for(tile = 0; tile < 64; tile++) {
+        x = tile % 8;
+        y = tile / 8;
+        moves = 0;
+
+        /* north west */
+        if(y < 6 && x > 0)
+            moves |= 1ull << (tile + 15);
+        if(y < 7 && x > 1)
+            moves |= 1ull << (tile + 6);
+        /* north east */
+        if(y < 6 && x < 7)
+            moves |= 1ull << (tile + 17);
+        if(y < 7 && x < 6)
+            moves |= 1ull << (tile + 10);
+        /* south west */
+        if(y > 1 && x > 0)
+            moves |= 1ull << (tile - 17);
+        if(y > 0 && x > 1)
+            moves |= 1ull << (tile - 10);
+        /* south east */
+        if(y > 1 && x < 7)
+            moves |= 1ull << (tile - 15);
+        if(y > 0 && x < 6)
+            moves |= 1ull << (tile - 6);
+
+        knight_moves[tile] = moves;
+    }
+}
+
+/* generate the ray tables */
+void generate_rays(void) {
+    int offset[8] = { 9, 7, -7, -9, 8, 1, -8, -1 };
+    int xoffset[8] = { 1, -1, 1, -1, 0, 1, 0, -1 };
+    int dir, tile;
+    int idx;
+    int x;
+
+    for(dir = 0; dir < 8; dir++) {
+        ray[dir][64] = 0;
+
+        for(tile = 0; tile < 64; tile++) {
+            ray[dir][tile] = 0;
+            idx = tile;
+            x = tile % 8;
+
+            while(1) {
+                /* step along the ray */
+                idx += offset[dir];
+                x += xoffset[dir];
+
+                /* stop if we wrap around */
+                if(x < 0 || x > 7)
+                    break;
+                else if(idx < 0 || idx > 63)
+                    break;
+
+                /* add this tile to the ray */
+                ray[dir][tile] |= 1ull << idx;
+            }
+        }
+    }
+}
+
+/* generate all movement tables */
+void generate_tables(void) {
+    generate_rays();
+    generate_king_moves();
+    generate_knight_moves();
+
+    int i;
+    Move m;
+
+    m.promote = 0;
+
+    for(i = 0; i < 64; i++) {
+        m.begin = i;
+        m.end = i;
+        printf("# rays from %s:\n", xboard_move(m));
+        draw_bitboard(ray[0][i] | ray[1][i] | ray[2][i] | ray[3][i] | ray[4][i]
+                | ray[5][i] | ray[6][i] | ray[7][i]);
+    }
+}
+
+/* return the set of tiles that can be reached by a positive ray in the given
+ * direction from the given tile.
+ */
+uint64_t negative_ray(Board *board, int tile, int dir) {
+    uint64_t tiles = ray[dir][tile];
+    uint64_t blockers = tiles & board->occupied;
+
+    /* remove all tiles beyond the first blocking tile */
+    tiles &= ~ray[dir][bsr(blockers)];
+
+    return tiles;
+}
+
+/* return the set of tiles that can be reached by a positive ray in the given
+ * direction from the given tile.
+ */
+uint64_t positive_ray(Board *board, int tile, int dir) {
+    uint64_t tiles = ray[dir][tile];
+    uint64_t blockers = tiles & board->occupied;
+
+    /* remove all tiles beyond the first blocking tile */
+    tiles &= ~ray[dir][bsf(blockers)];
+
+    return tiles;
+}
+
+/* return the set of tiles a rook can move to from the given tile */
+uint64_t rook_moves(Board *board, int tile) {
+    return positive_ray(board, tile, NORTH) | positive_ray(board, tile, EAST) |
+        negative_ray(board, tile, SOUTH) | negative_ray(board, tile, WEST);
+}
+
+/* return the set of tiles a bishop can move to from the given tile */
+uint64_t bishop_moves(Board *board, int tile) {
+    return positive_ray(board, tile, NW) | positive_ray(board, tile, NE) |
+        negative_ray(board, tile, SW) | negative_ray(board, tile, SE);
+}
+
+

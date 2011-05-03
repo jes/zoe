@@ -5,127 +5,6 @@
 
 #include "zoe.h"
 
-#define NW 0
-#define NE 1
-#define SW 2
-#define SE 3
-#define NORTH 4
-#define EAST  5
-#define SOUTH 6
-#define WEST  7
-
-static uint64_t ray[8][65];
-static uint64_t king_moves[64];
-static uint64_t knight_moves[64];
-
-/* generate king movement table */
-void generate_king_moves(void) {
-    int tile;
-    int x, y;
-    uint64_t moves;
-
-    for(tile = 0; tile < 64; tile++) {
-        x = tile % 8;
-        y = tile / 8;
-        moves = 0;
-
-        if(y != 7) /* north */
-            moves |= 1ull << (tile + 8);
-        if(y != 0) /* south */
-            moves |= 1ull << (tile - 8);
-        if(x != 7) /* east */
-            moves |= 1ull << (tile + 1);
-        if(x != 0) /* west */
-            moves |= 1ull << (tile - 1);
-        if(x != 0 && y != 7) /* north west */
-            moves |= 1ull << (tile + 7);
-        if(x != 7 && y != 7) /* north east */
-            moves |= 1ull << (tile + 9);
-        if(x != 0 && y != 0) /* south west */
-            moves |= 1ull << (tile - 9);
-        if(x != 7 && y != 0) /* south east */
-            moves |= 1ull << (tile - 7);
-
-        king_moves[tile] = moves;
-    }
-}
-
-/* generate knight movement table */
-void generate_knight_moves(void) {
-    int tile;
-    int x, y;
-    uint64_t moves;
-
-    for(tile = 0; tile < 64; tile++) {
-        x = tile % 8;
-        y = tile / 8;
-        moves = 0;
-
-        /* north west */
-        if(y < 6 && x > 0)
-            moves |= 1ull << (tile + 15);
-        if(y < 7 && x > 1)
-            moves |= 1ull << (tile + 6);
-        /* north east */
-        if(y < 6 && x < 7)
-            moves |= 1ull << (tile + 17);
-        if(y < 7 && x < 6)
-            moves |= 1ull << (tile + 10);
-        /* south west */
-        if(y > 1 && x > 0)
-            moves |= 1ull << (tile - 17);
-        if(y > 0 && x > 1)
-            moves |= 1ull << (tile - 10);
-        /* south east */
-        if(y > 1 && x < 7)
-            moves |= 1ull << (tile - 15);
-        if(y > 0 && x < 6)
-            moves |= 1ull << (tile - 6);
-
-        knight_moves[tile] = moves;
-    }
-}
-
-/* generate the ray tables */
-void generate_rays(void) {
-    int offset[8] = { 9, 7, -7, -9, 8, 1, -8, -1 };
-    int dir, tile;
-    int idx;
-
-    for(dir = 0; dir < 8; dir++) {
-        ray[dir][64] = 0;
-
-        for(tile = 0; tile < 64; tile++) {
-            ray[dir][tile] = 0;
-            idx = tile;
-
-            while(1) {
-                /* step along the ray */
-                idx += offset[dir];
-
-                /* stop if we wrap around */
-                if((offset[dir] < 0) && ((idx%8) - (tile%8) > 0))
-                    break;
-                else if((offset[dir] > 0) && ((idx%8) - (tile%8) < 0))
-                    break;
-                else if(idx < 0 || idx > 63)
-                    break;
-
-                /* add this tile to the ray */
-                ray[dir][tile] |= 1ull < idx;
-            }
-        }
-    }
-}
-
-/* generate all movement tables */
-void generate_tables(void) {
-    generate_rays();
-    generate_king_moves();
-    generate_knight_moves();
-}
-
-
 /* return a pointer to a static char array containing the xboard representation
  * of the given move.
  */
@@ -140,8 +19,8 @@ char *xboard_move(Move m) {
     move[i++] = '1' + m.end / 8;
     
     /* pawn promotions */
-    if(m.promotion > 0 && m.promotion < 5)
-        move[i++] = ".kbrq"[m.promotion];
+    if(m.promote > 0 && m.promote < 5)
+        move[i++] = ".kbrq"[m.promote];
 
     move[i++] = '\0';
 
@@ -155,8 +34,8 @@ int is_xboard_move(const char *move) {
         return 0;
 
     /* fail if the co-ordinates are invalid */
-    if(move[0] < 'a' || move[0] > 'h' || move[1] < '1' || move[1] > '8' ||
-            move[2] < 'a' || move[2] > 'h' || move[3] < '1' || move[3] > '8')
+    if(move[0] < 'a' || move[0] > 'h' || move[1] < '1'|| move[1] > '8'
+            || move[2] < 'a' || move[2] > 'h' || move[3] < '1'|| move[3] > '8')
         return 0;
 
     /* don't validate the promotion piece... */
@@ -174,11 +53,11 @@ Move get_xboard_move(const char *move) {
 
     /* set promotion piece */
     switch(move[5]) {
-        case 'k': m.promotion = KNIGHT; break;
-        case 'b': m.promotion = BISHOP; break;
-        case 'r': m.promotion = ROOK;   break;
-        case 'q': m.promotion = QUEEN;  break;
-        default:  m.promotion = 0;      break;
+        case 'k': m.promote = KNIGHT; break;
+        case 'b': m.promote = BISHOP; break;
+        case 'r': m.promote = ROOK;   break;
+        case 'q': m.promote = QUEEN;  break;
+        default:  m.promote = 0;      break;
     }
 
     return m;
@@ -189,80 +68,58 @@ void apply_move(Game *game, Move m) {
     Board *board = &(game->board);
     int beginpiece, endpiece;
     int begincolour, endcolour;
+    uint64_t beginbit, endbit;
 
     /* find the piece from the mailbox */
     beginpiece = board->mailbox[m.begin];
     endpiece = board->mailbox[m.end];
 
+    /* find the bits to use */
+    beginbit = 1ull << m.begin;
+    endbit = 1ull << m.end;
+
     /* find the colour from white's occupied bitboard */
-    begincolour = !(board->b[WHITE][OCCUPIED] & m.begin);
-    endcolour = !(board->b[WHITE][OCCUPIED] & m.end);
+    begincolour = !(board->b[WHITE][OCCUPIED] & beginbit);
+    endcolour = !(board->b[WHITE][OCCUPIED] & endbit);
+
+    printf("begincolour = %c\n", "wb"[begincolour]);
 
     /* remove the piece from the begin square */
     board->mailbox[m.begin] = EMPTY;
-    board->b[begincolour][beginpiece] ^= m.begin;
+    board->b[begincolour][beginpiece] ^= beginbit;
 
     /* remove the piece from the end square */
-    if(endpiece != EMPTY)
-        board->b[endcolour][endpiece] ^= m.end;
+    if(endpiece != EMPTY) {
+        board->b[endcolour][endpiece] ^= endbit;
+        board->b[endcolour][OCCUPIED] ^= endbit;
+    }
 
     /* insert the piece at the end square */
     board->mailbox[m.end] = beginpiece;
-    board->b[begincolour][beginpiece] |= m.end;
+    board->b[begincolour][beginpiece] |= endbit;
 
-    /* TODO: en passant, castling */
+    /* make start square unoccupied */
+    board->b[begincolour][OCCUPIED] ^= beginbit;
+    board->occupied ^= beginbit;
+
+    /* make end square occupied */
+    board->b[begincolour][OCCUPIED] |= endbit;
+    board->occupied |= endbit;
+
+    /* TODO: en passant, castling, pawn promotion */
 }
-
-/* return the set of tiles that can be reached by a positive ray in the given
- * direction from the given tile.
- */
-uint64_t negative_rays(Game *game, int tile, int dir) {
-    uint64_t tiles = ray[dir][tile];
-    uint64_t blocker = tiles & game->board.occupied;
-
-    /* remove all tiles beyond the first blocking tile */
-    tiles ^= ray[dir][bsr(blocker)];
-
-    return tiles;
-}
-
-/* return the set of tiles that can be reached by a positive ray in the given
- * direction from the given tile.
- */
-uint64_t positive_rays(Game *game, int tile, int dir) {
-    uint64_t tiles = ray[dir][tile];
-    uint64_t blocker = tiles & game->board.occupied;
-
-    /* remove all tiles beyond the first blocking tile */
-    tiles ^= ray[dir][bsf(blocker)];
-
-    return tiles;
-}
-
-/* return the set of tiles a rook can move to from the given tile */
-uint64_t rook_moves(Game *game, int tile) {
-    return positive_rays(game, tile, NORTH) | positive_rays(game, tile, EAST) |
-        negative_rays(game, tile, SOUTH) | negative_rays(game, tile, WEST);
-}
-
-/* return the set of tiles a bishop can move to from the given tile */
-uint64_t bishop_moves(Game *game, int tile) {
-    return positive_rays(game, tile, NW) | positive_rays(game, tile, NE) |
-        negative_rays(game, tile, SW) | negative_rays(game, tile, SE);
-}
-
 /* return the set of all squares the given piece is able to move to, without
  * considering a king left in check */
 uint64_t generate_moves(Game *game, int tile) {
     Board *board = &(game->board);
     int type = board->mailbox[tile];
-    int colour = !(board->b[WHITE][OCCUPIED] & tile);
+    int colour = !(board->b[WHITE][OCCUPIED] & (1ull << tile));
     uint64_t moves = 0;
-    int target;
+    int target, capture;
 
     switch(type) {
     case PAWN:
-        /* TODO: en passant, double square first moves */
+        /* TODO: en passant */
         if(colour == WHITE) {
             target = tile + 8;
             moves = 1ull << target;
@@ -276,11 +133,13 @@ uint64_t generate_moves(Game *game, int tile) {
         if(board->occupied & moves)
             moves = 0;
 
-        /* add on the appropriate attack squares */
-        if(target % 8 != 0)
-            moves |= 1ull << (target - 1);
-        if(target % 8 != 7)
-            moves |= 1ull << (target + 1);
+        /* add on the appropriate capture squares */
+        capture = 1ull << (target - 1);
+        if(target % 8 != 0 && (board->b[!colour][OCCUPIED] & capture))
+            moves |= capture;
+        capture = 1ull << (target + 1);
+        if(target % 8 != 7 && (board->b[!colour][OCCUPIED] & capture))
+            moves |= capture;
         break;
 
     case KNIGHT:
@@ -288,15 +147,15 @@ uint64_t generate_moves(Game *game, int tile) {
         break;
 
     case BISHOP:
-        moves = bishop_moves(game, tile);
+        moves = bishop_moves(board, tile);
         break;
 
     case ROOK:
-        moves = rook_moves(game, tile);
+        moves = rook_moves(board, tile);
         break;
 
     case QUEEN:
-        moves = bishop_moves(game, tile) | rook_moves(game, tile);
+        moves = bishop_moves(board, tile) | rook_moves(board, tile);
         break;
 
     case KING:
@@ -307,4 +166,41 @@ uint64_t generate_moves(Game *game, int tile) {
 
     /* return the moves, with any moves that take our own tiles removed */
     return moves & ~board->b[colour][OCCUPIED];
+}
+
+/* returns 1 if the move is valid and 0 otherwise */
+int is_valid_move(Game *game, Move m) {
+    Board *board = &(game->board);
+    /* Board tmp; */
+    uint64_t beginbit, endbit;
+
+    beginbit = 1ull << m.begin;
+    endbit = 1ull << m.end;
+
+    /* ensure that the piece belongs to the current player */
+    if(!(board->b[game->turn][OCCUPIED] & beginbit))
+        return 0;
+
+    /* ensure that the end tile can be moved to from the begin tile */
+    if(!(generate_moves(game, m.begin) & endbit))
+        return 0;
+
+    /* TODO: ensure that the king is not left in check */
+    /* tmp = *board;
+    apply_move(game, m);
+    if(king_in_check(Game *game, game->turn))
+        return 0;
+    game->board = tmp; */
+
+    /* ensure that pawns reaching the eighth rank promote */
+    if(!m.promote && ((m.end / 8) == 0 || (m.end / 8) == 7)
+            && board->mailbox[m.begin] == PAWN)
+        return 0;
+
+    /* ensure that no other pieces promote */
+    if(m.promote && (board->mailbox[m.begin] != PAWN
+                || ((m.end / 8) != 0 && (m.end / 8) != 7)))
+        return 0;
+
+    return 1;
 }
