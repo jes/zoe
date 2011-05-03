@@ -49,14 +49,20 @@ int main(int argc, char **argv) {
             game.engine = game.turn;
         }
         else if(is_xboard_move(line)) {
-            printf("# received move %s\n", line);
-
-            /* apply this move to our board */
             Move m = get_xboard_move(line);
-            apply_move(&game, m);
 
-            /* toggle player */
-            game.turn = !game.turn;
+            /* validate the move */
+            if(is_valid_move(&game, m)) {
+                /* apply the move */
+                apply_move(&game, m);
+
+                /* toggle player */
+                game.turn = !game.turn;
+            }
+            else {
+                /* TODO: get the specific error message */
+                printf("Illegal move: %s\n", line);
+            }
         }
 
         /* play a move if it is now our turn */
@@ -72,5 +78,10 @@ int main(int argc, char **argv) {
             /* toggle player */
             game.turn = !game.turn;
         }
+
+        printf("# engine = %s\n", game.engine ? "black" : "white");
+        printf("# turn = %s\n", game.turn ? "black" : "white");
+
+        draw_board(&(game.board));
     }
 }
