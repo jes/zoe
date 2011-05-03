@@ -27,7 +27,7 @@
 #define OCCUPIED 6
 #define EMPTY    7
 
-#define INFINITY (1 << 60)
+#define INFINITY (1 << 30)
 
 typedef struct Board {
     uint8_t mailbox[64];
@@ -49,7 +49,7 @@ typedef struct Game {
 typedef struct Move {
     uint8_t begin;
     uint8_t end;
-    uint8_t promotion;
+    uint8_t promote;
 } Move;
 
 typedef struct MoveScore {
@@ -61,17 +61,26 @@ typedef struct MoveScore {
 void reset_game(Game *game);
 
 /* board.c */
+extern uint64_t king_moves[64];
+extern uint64_t knight_moves[64];
+
 void reset_board(Board *board);
+void draw_board(Board *board);
+void draw_bitboard(uint64_t board);
+void generate_tables(void);
+uint64_t rook_moves(Board *board, int tile);
+uint64_t bishop_moves(Board *board, int tile);
 
 /* search.c */
 Move best_move(Game *game);
 
 /* move.c */
-void generate_tables(void);
 char *xboard_move(Move m);
 int is_xboard_move(const char *move);
 Move get_xboard_move(const char *move);
 void apply_move(Game *game, Move m);
+uint64_t generate_moves(Game *game, int tile);
+int is_valid_move(Game *game, Move m);
 
 /* bitscan.c */
 int bsf(uint64_t n);
