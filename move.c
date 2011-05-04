@@ -82,8 +82,6 @@ void apply_move(Game *game, Move m) {
     begincolour = !(board->b[WHITE][OCCUPIED] & beginbit);
     endcolour = !(board->b[WHITE][OCCUPIED] & endbit);
 
-    printf("begincolour = %c\n", "wb"[begincolour]);
-
     /* remove the piece from the begin square */
     board->mailbox[m.begin] = EMPTY;
     board->b[begincolour][beginpiece] ^= beginbit;
@@ -115,10 +113,12 @@ uint64_t generate_moves(Game *game, int tile) {
     int type = board->mailbox[tile];
     int colour = !(board->b[WHITE][OCCUPIED] & (1ull << tile));
     uint64_t moves = 0;
-    int target, capture;
+    uint64_t capture;
+    int target;
 
     switch(type) {
     case PAWN:
+        /* TODO: bitboard? */
         /* TODO: en passant */
         if(colour == WHITE) {
             target = tile + 8;
@@ -134,6 +134,7 @@ uint64_t generate_moves(Game *game, int tile) {
             moves = 0;
 
         /* add on the appropriate capture squares */
+        /* TODO: go the other way for black (board edge checking) */
         capture = 1ull << (target - 1);
         if(target % 8 != 0 && (board->b[!colour][OCCUPIED] & capture))
             moves |= capture;

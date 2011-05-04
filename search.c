@@ -20,7 +20,7 @@ MoveScore alphabeta(Game *game, int alpha, int beta, int depth) {
 
     /* if at a leaf node, return position evaluation */
     if(depth == 0) {
-        best.score = game->board.b[game->engine][OCCUPIED];//evaluate(game);
+        best.score = -(rand() >> 18);//evaluate(game);
         return best;
     }
 
@@ -75,7 +75,10 @@ MoveScore alphabeta(Game *game, int alpha, int beta, int depth) {
             }
 
             /* new best move? */
-            if(new.score > alpha) {
+            if(new.score > best.score) {
+                /* best movescore has the move we just played and the score we
+                 * got from the child alphabeta.
+                 */
                 best.move = m;
                 best.score = new.score;
             }
