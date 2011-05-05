@@ -29,6 +29,7 @@ MoveScore alphabeta(Game *game, int alpha, int beta, int depth) {
     MoveScore best, new;
     Board origboard;
     uint64_t pieces = game->board.b[game->turn][OCCUPIED];
+    int legal_move = 0;
 
     /* store a copy of the board */
     origboard = game->board;
@@ -86,6 +87,11 @@ MoveScore alphabeta(Game *game, int alpha, int beta, int depth) {
                 continue;
             }
 
+            /* if there is a move we can play that doesn't leave the king in
+             * check, then we have at least one legal move.
+             */
+            legal_move = 1;
+
             new = alphabeta(game, -beta, -best.score, depth - 1);
             new.score = -new.score;
 
@@ -110,11 +116,33 @@ MoveScore alphabeta(Game *game, int alpha, int beta, int depth) {
         }
     }
 
+    /* no legal moves? checkmate or stalemate */
+    if(!legal_move) {
+        if(king_in_check(&(game->board), game->turn))
+            best.score = -INFINITY;
+        else
+            best.score = 0;
+
+        best.move.begin = 64;
+    }
+
     return best;
 }
 
 /* return the best move for the current player */
 Move best_move(Game *game) {
     MoveScore best = alphabeta(game, -INFINITY, INFINITY, 6);
+
+    if(best.move.begin == 64) { /* we had no legal moves */
+        if(best.score == 0)
+            printf("1/2-1/2 {Stalemate}\n");
+        else /* best.score == -INFINITY */ {
+            if(game->turn == WHITE)
+                printf("0-1 {Black mates}\n");
+            else
+                printf("1-0 {White mates}\n");
+        }
+    }
+
     return best.move;
 }

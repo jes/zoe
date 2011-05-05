@@ -350,5 +350,7 @@ int king_in_check(Board *board, int colour) {
     if(pawn_tiles)
         return 1;
 
+    /* TODO: if the enemy king is in an adjacent tile, the king is in check */
+
     return 0;
 }

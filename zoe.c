@@ -68,11 +68,15 @@ int main(int argc, char **argv) {
         if(game.turn == game.engine) {
             /* find the best move */
             Move m = best_move(&game);
-            apply_move(&game, m);
 
-            /* tell xboard about our move */
-            printf("move %s\n", xboard_move(m));
-            printf("# ! move %s\n", xboard_move(m));
+            /* only do anything if we have a legal move */
+            if(m.begin != 64) {
+                apply_move(&game, m);
+
+                /* tell xboard about our move */
+                printf("move %s\n", xboard_move(m));
+                printf("# ! move %s\n", xboard_move(m));
+            }
         }
 
         printf("# engine = %s\n", game.engine ? "black" : "white");
