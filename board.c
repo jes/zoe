@@ -67,7 +67,7 @@ void reset_board(Board *board) {
 void draw_board(Board *board) {
     int x, y;
 
-    printf("#\n# ");
+    printf("#\n# 8 ");
 
     for(y = 7; y >= 0; y--) {
         for(x = 0; x < 8; x++) {
@@ -78,9 +78,12 @@ void draw_board(Board *board) {
             else
                 putchar('.');
         }
-        printf("\n# ");
+        if(y == 0)
+            printf("\n# ");
+        else
+            printf("\n# %d ", y);
     }
-    printf("\n");
+    printf("  a b c d e f g h\n#\n");
 }
 
 /* draw the bitboard to stdout */
@@ -209,19 +212,6 @@ void generate_tables(void) {
     generate_rays();
     generate_king_moves();
     generate_knight_moves();
-
-    int i;
-    Move m;
-
-    m.promote = 0;
-
-    for(i = 0; i < 64; i++) {
-        m.begin = i;
-        m.end = i;
-        printf("# rays from %s:\n", xboard_move(m));
-        draw_bitboard(ray[0][i] | ray[1][i] | ray[2][i] | ray[3][i] | ray[4][i]
-                | ray[5][i] | ray[6][i] | ray[7][i]);
-    }
 }
 
 /* return the set of tiles that can be reached by a positive ray in the given
