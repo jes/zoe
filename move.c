@@ -52,7 +52,7 @@ Move get_xboard_move(const char *move) {
     m.end = (move[2] - 'a') + ((move[3] - '1') * 8);
 
     /* set promotion piece */
-    switch(move[5]) {
+    switch(move[4]) {
         case 'k': m.promote = KNIGHT; break;
         case 'b': m.promote = BISHOP; break;
         case 'r': m.promote = ROOK;   break;
@@ -92,17 +92,21 @@ void apply_move(Game *game, Move m) {
         board->b[endcolour][OCCUPIED] ^= endbit;
     }
 
-    /* insert the piece at the end square */
-    board->mailbox[m.end] = beginpiece;
-    board->b[begincolour][beginpiece] |= endbit;
-
-    /* make start square unoccupied */
+    /* make begin square unoccupied */
     board->b[begincolour][OCCUPIED] ^= beginbit;
     board->occupied ^= beginbit;
+
+    /* change the piece to it's promotion if appropriate */
+    if(m.promote)
+        beginpiece = m.promote;
 
     /* make end square occupied */
     board->b[begincolour][OCCUPIED] |= endbit;
     board->occupied |= endbit;
+
+    /* insert the piece at the end square */
+    board->mailbox[m.end] = beginpiece;
+    board->b[begincolour][beginpiece] |= endbit;
 
     /* TODO: en passant, castling, pawn promotion */
 
@@ -174,13 +178,17 @@ int is_valid_move(Game *game, Move m) {
 
     /* ensure that pawns reaching the eighth rank promote */
     if(!m.promote && ((m.end / 8) == 0 || (m.end / 8) == 7)
-            && board->mailbox[m.begin] == PAWN)
+            && board->mailbox[m.begin] == PAWN) {
+        printf("# pawn reaching 8th must promote\n");
         return 0;
+    }
 
     /* ensure that no other pieces promote */
     if(m.promote && (board->mailbox[m.begin] != PAWN
-                || ((m.end / 8) != 0 && (m.end / 8) != 7)))
+                || ((m.end / 8) != 0 && (m.end / 8) != 7))) {
+        printf("# non-pawn or reaching non-8th must not promote\n");
         return 0;
+    }
 
     return 1;
 }

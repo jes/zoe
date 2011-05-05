@@ -68,7 +68,11 @@ MoveScore alphabeta(Game *game, int alpha, int beta, int depth) {
             m.end = move;
 
             /* TODO: try each possiblity of pawn promotion */
-            m.promote = 0;
+            if(origboard.mailbox[piece] == PAWN
+                    && (m.end / 8 == 0 || m.end / 8 == 7))
+                m.promote = QUEEN;
+            else
+                m.promote = 0;
 
             /* ensure that we are not left in check or taking one of our own
              * pieces.
