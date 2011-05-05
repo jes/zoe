@@ -5,6 +5,24 @@
 
 #include "zoe.h"
 
+static int piece_score[6] = { /* pawn */ 100, /* knight */ 300,
+    /* bishop */ 325, /* rook */ 500, /* queen */ 900, /* king */ 0 };
+
+/* return the value of the game for the player currently on move */
+int evaluate(Game *game) {
+    int score = 0;
+    int piece;
+
+    for(piece = 0; piece < 5; piece++) {
+        score += piece_score[piece]
+            * count_ones(game->board.b[game->turn][piece]);
+        score -= piece_score[piece]
+            * count_ones(game->board.b[!game->turn][piece]);
+    }
+
+    return score;
+}
+
 /* return the best move from the current position along with it's score */
 MoveScore alphabeta(Game *game, int alpha, int beta, int depth) {
     Move m;
@@ -20,7 +38,7 @@ MoveScore alphabeta(Game *game, int alpha, int beta, int depth) {
 
     /* if at a leaf node, return position evaluation */
     if(depth == 0) {
-        best.score = -(rand() >> 18);//evaluate(game);
+        best.score = evaluate(game);
         return best;
     }
 
@@ -68,6 +86,9 @@ MoveScore alphabeta(Game *game, int alpha, int beta, int depth) {
             /* reset the board */
             game->board = origboard;
 
+            /* toggle the turn back */
+            game->turn = !game->turn;
+
             /* beta cut-off */
             if(new.score >= beta) {
                 best.score = beta;
@@ -90,6 +111,6 @@ MoveScore alphabeta(Game *game, int alpha, int beta, int depth) {
 
 /* return the best move for the current player */
 Move best_move(Game *game) {
-    MoveScore best = alphabeta(game, -INFINITY, INFINITY, 3);
+    MoveScore best = alphabeta(game, -INFINITY, INFINITY, 6);
     return best.move;
 }

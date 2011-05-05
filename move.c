@@ -105,6 +105,9 @@ void apply_move(Game *game, Move m) {
     board->occupied |= endbit;
 
     /* TODO: en passant, castling, pawn promotion */
+
+    /* toggle current player */
+    game->turn = !game->turn;
 }
 /* return the set of all squares the given piece is able to move to, without
  * considering a king left in check */

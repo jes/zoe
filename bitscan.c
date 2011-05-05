@@ -36,3 +36,15 @@ int bsr(uint64_t n) {
 
     return idx;
 }
+
+/* return the number of 1 bits in n */
+int count_ones(uint64_t n) {
+    int count = 0;
+
+    while(n) {
+        count += n & 1;
+        n >>= 1;
+    }
+
+    return count;
+}

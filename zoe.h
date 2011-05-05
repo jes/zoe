@@ -85,5 +85,6 @@ int is_valid_move(Game *game, Move m);
 /* bitscan.c */
 int bsf(uint64_t n);
 int bsr(uint64_t n);
+int count_ones(uint64_t n);
 
 #endif
