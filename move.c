@@ -146,10 +146,10 @@ uint64_t generate_moves(Game *game, int tile) {
         moves = king_moves[tile];
 
         /* TODO: make sure everything is fine */
-        if(game->can_castle[colour][KINGSIDE])
+        /*if(game->can_castle[colour][KINGSIDE])
             moves |= 1 << (tile + 2);
         if(game->can_castle[colour][QUEENSIDE])
-            moves |= 1 << (tile - 2);
+            moves |= 1 << (tile - 2);*/
         break;
     }
 
