@@ -77,8 +77,8 @@ MoveScore alphabeta(Game *game, int alpha, int beta, int depth) {
             /* make the move */
             apply_move(game, m);
 
-            /* continue the search if the king is not left in check */
-            if(!king_in_check(&(game->board), !game->turn)) {
+            /* don't search this move if the king is left in check */
+            if(king_in_check(&(game->board), !game->turn)) {
                 /* reset game state */
                 game->board = origboard;
                 game->turn = !game->turn;
