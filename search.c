@@ -74,23 +74,23 @@ MoveScore alphabeta(Game *game, int alpha, int beta, int depth) {
             else
                 m.promote = 0;
 
-            /* ensure that we are not left in check or taking one of our own
-             * pieces.
-             */
-            /*if(!quick_valid_move(game, piece, move))
-                continue;*/
-
             /* make the move */
             apply_move(game, m);
 
-            /* continue the search */
+            /* continue the search if the king is not left in check */
+            if(!king_in_check(&(game->board), !game->turn)) {
+                /* reset game state */
+                game->board = origboard;
+                game->turn = !game->turn;
+
+                continue;
+            }
+
             new = alphabeta(game, -beta, -best.score, depth - 1);
             new.score = -new.score;
 
-            /* reset the board */
+            /* reset game state */
             game->board = origboard;
-
-            /* toggle the turn back */
             game->turn = !game->turn;
 
             /* beta cut-off */

@@ -143,8 +143,13 @@ uint64_t generate_moves(Game *game, int tile) {
         break;
 
     case KING:
-        /* TODO: castling */
         moves = king_moves[tile];
+
+        /* TODO: make sure everything is fine */
+        if(game->can_castle[colour][KINGSIDE])
+            moves |= 1 << (tile + 2);
+        if(game->can_castle[colour][QUEENSIDE])
+            moves |= 1 << (tile - 2);
         break;
     }
 
@@ -155,8 +160,9 @@ uint64_t generate_moves(Game *game, int tile) {
 /* returns 1 if the move is valid and 0 otherwise */
 int is_valid_move(Game *game, Move m) {
     Board *board = &(game->board);
-    /* Board tmp; */
+    Board tmp;
     uint64_t beginbit, endbit;
+    int in_check;
 
     beginbit = 1ull << m.begin;
     endbit = 1ull << m.end;
@@ -169,26 +175,26 @@ int is_valid_move(Game *game, Move m) {
     if(!(generate_moves(game, m.begin) & endbit))
         return 0;
 
-    /* TODO: ensure that the king is not left in check */
-    /* tmp = *board;
+    /* ensure that the king is not left in check */
+    tmp = *board;
     apply_move(game, m);
-    if(king_in_check(Game *game, game->turn))
+    in_check = king_in_check(board, !game->turn);
+    /* undo the move */
+    *board = tmp;
+    game->turn = !game->turn;
+    if(in_check)
         return 0;
-    game->board = tmp; */
 
     /* ensure that pawns reaching the eighth rank promote */
     if(!m.promote && ((m.end / 8) == 0 || (m.end / 8) == 7)
-            && board->mailbox[m.begin] == PAWN) {
-        printf("# pawn reaching 8th must promote\n");
+            && board->mailbox[m.begin] == PAWN)
         return 0;
-    }
 
     /* ensure that no other pieces promote */
     if(m.promote && (board->mailbox[m.begin] != PAWN
-                || ((m.end / 8) != 0 && (m.end / 8) != 7))) {
-        printf("# non-pawn or reaching non-8th must not promote\n");
+                || ((m.end / 8) != 0 && (m.end / 8) != 7)))
         return 0;
-    }
 
+    /* hasn't failed any validation, must be a valid move */
     return 1;
 }

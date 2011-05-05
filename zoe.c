@@ -48,14 +48,20 @@ int main(int argc, char **argv) {
             /* the engine becomes the player currently on move */
             game.engine = game.turn;
         }
+        else if(strcmp(line, "quit") == 0) {
+            printf("# Be seeing you...\n");
+            exit(0);
+        }
         else if(is_xboard_move(line)) {
             Move m = get_xboard_move(line);
 
             /* validate and apply the move */
             if(is_valid_move(&game, m))
                 apply_move(&game, m);
-            else
+            else {
                 printf("Illegal move: %s\n", line);
+                printf("# ! Illegal move: %s\n", line);
+            }
         }
 
         /* play a move if it is now our turn */

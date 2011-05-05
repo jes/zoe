@@ -71,6 +71,7 @@ void generate_tables(void);
 uint64_t rook_moves(Board *board, int tile);
 uint64_t bishop_moves(Board *board, int tile);
 uint64_t pawn_moves(Board *board, int tile);
+int king_in_check(Board *board, int colour);
 
 /* search.c */
 Move best_move(Game *game);

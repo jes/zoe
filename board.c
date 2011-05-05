@@ -295,7 +295,7 @@ uint64_t pawn_moves(Board *board, int tile) {
     if(!(board->occupied & move))
         moves |= move;
 
-    /* move forward two squares if we could move one */
+    /* try to move forward two squares if we could move one */
     if(((y == 1 && colour == WHITE) || (y == 6 && colour == BLACK))
             && (moves & move)) {
         if(colour == WHITE)
@@ -309,4 +309,23 @@ uint64_t pawn_moves(Board *board, int tile) {
     }
 
     return moves;
+}
+
+/* return 1 if the given colour's king is in check and 0 otherwise */
+int king_in_check(Board *board, int colour) {
+    int king_tile = bsf(board->b[colour][KING]);
+
+    /* pretend the king is a rook, bishop and knight respectively. if it can
+     * then take an enemy rook, bishop or knight then it is in check.
+     */
+    if((rook_moves(board, king_tile) & (board->b[!colour][ROOK]
+                    | board->b[!colour][QUEEN]))
+            || (bishop_moves(board, king_tile) & (board->b[!colour][BISHOP]
+                    | board->b[!colour][QUEEN]))
+            || (knight_moves[king_tile] & board->b[!colour][KNIGHT]))
+        return 1;
+
+    /* TODO: check pawns */
+
+    return 0;
 }
