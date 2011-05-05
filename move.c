@@ -113,63 +113,13 @@ void apply_move(Game *game, Move m) {
  * considering a king left in check */
 uint64_t generate_moves(Game *game, int tile) {
     Board *board = &(game->board);
-    int type = board->mailbox[tile];
     int colour = !(board->b[WHITE][OCCUPIED] & (1ull << tile));
+    int type = board->mailbox[tile];
     uint64_t moves = 0;
-    int x = tile % 8, y = tile / 8;
-    int target;
-    uint64_t move;
 
     switch(type) {
     case PAWN:
-        /* TODO: en passant, bitboards */
-
-        /* attack left if it's an enemy */
-        if(x > 0) {
-            if(colour == WHITE)
-                target = tile + 7;
-            else
-                target = tile - 9;
-
-            move = 1ull << target;
-            if(board->b[!colour][OCCUPIED] & move)
-                moves |= move;
-        }
-
-        /* attack right if it's an enemy */
-        if(x < 7) {
-            if(colour == WHITE)
-                target = tile + 9;
-            else
-                target = tile - 7;
-
-            move = 1ull << target;
-            if(board->b[!colour][OCCUPIED] & move)
-                moves |= move;
-        }
-
-        /* move forward one square */
-        if(colour == WHITE)
-            target = tile + 8;
-        else
-            target = tile - 8;
-
-        move = 1ull << target;
-        if(!(board->occupied & move))
-            moves |= move;
-
-        /* move forward two squares if we could move one */
-        if(((y == 1 && colour == WHITE) || (y == 6 && colour == BLACK))
-                && (moves & move)) {
-            if(colour == WHITE)
-                target = tile + 16;
-            else
-                target = tile - 16;
-
-            move = 1ull << target;
-            if(!(board->occupied & move))
-                moves |= move;
-        }
+        moves = pawn_moves(board, tile);
         break;
 
     case KNIGHT:

@@ -252,4 +252,61 @@ uint64_t bishop_moves(Board *board, int tile) {
         negative_ray(board, tile, SW) | negative_ray(board, tile, SE);
 }
 
+/* return the set of tiles the pawn can move to from the given tile */
+uint64_t pawn_moves(Board *board, int tile) {
+    int colour = !(board->b[WHITE][OCCUPIED] & (1ull << tile));
+    uint64_t move, moves = 0;
+    int x = tile % 8, y = tile / 8;
+    int target;
 
+    /* TODO: en passant, bitboards */
+
+    /* attack left if it's an enemy */
+    if(x > 0) {
+        if(colour == WHITE)
+            target = tile + 7;
+        else
+            target = tile - 9;
+
+        move = 1ull << target;
+        if(board->b[!colour][OCCUPIED] & move)
+            moves |= move;
+    }
+
+    /* attack right if it's an enemy */
+    if(x < 7) {
+        if(colour == WHITE)
+            target = tile + 9;
+        else
+            target = tile - 7;
+
+        move = 1ull << target;
+        if(board->b[!colour][OCCUPIED] & move)
+            moves |= move;
+    }
+
+    /* move forward one square */
+    if(colour == WHITE)
+        target = tile + 8;
+    else
+        target = tile - 8;
+
+    move = 1ull << target;
+    if(!(board->occupied & move))
+        moves |= move;
+
+    /* move forward two squares if we could move one */
+    if(((y == 1 && colour == WHITE) || (y == 6 && colour == BLACK))
+            && (moves & move)) {
+        if(colour == WHITE)
+            target = tile + 16;
+        else
+            target = tile - 16;
+
+        move = 1ull << target;
+        if(!(board->occupied & move))
+            moves |= move;
+    }
+
+    return moves;
+}

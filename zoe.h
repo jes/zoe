@@ -70,6 +70,7 @@ void draw_bitboard(uint64_t board);
 void generate_tables(void);
 uint64_t rook_moves(Board *board, int tile);
 uint64_t bishop_moves(Board *board, int tile);
+uint64_t pawn_moves(Board *board, int tile);
 
 /* search.c */
 Move best_move(Game *game);
