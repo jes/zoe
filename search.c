@@ -124,6 +124,7 @@ MoveScore alphabeta(Game *game, int alpha, int beta, int depth) {
 
             /* beta cut-off */
             if(new.score >= beta) {
+                best.move = m;
                 best.score = beta;
                 return best;
             }
