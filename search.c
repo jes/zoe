@@ -9,7 +9,7 @@ static int piece_score[6] = { /* pawn */ 100, /* knight */ 300,
     /* bishop */ 325, /* rook */ 500, /* queen */ 900, /* king */ 0 };
 
 /* return the value of the game for the player currently on move */
-int evaluate(Game *game, int print) {
+int evaluate(Game *game) {
     int score = 0;
     int piece;
 
@@ -18,19 +18,7 @@ int evaluate(Game *game, int print) {
             * count_ones(game->board.b[game->turn][piece]);
         score -= piece_score[piece]
             * count_ones(game->board.b[!game->turn][piece]);
-
-        if(print) {
-            printf("# %s has %d %c's\n", game->turn ? "black" : "white",
-                    count_ones(game->board.b[game->turn][piece]),
-                        "pnbrqk"[piece]);
-            printf("# %s has %d %c's\n", game->turn ? "white" : "black",
-                    count_ones(game->board.b[!game->turn][piece]),
-                        "pnbrqk"[piece]);
-        }
     }
-
-    if(print)
-        printf("# current eval = %d\n", score);
 
     return score;
 }
@@ -48,11 +36,14 @@ MoveScore alphabeta(Game *game, int alpha, int beta, int depth) {
     origboard = game->board;
 
     /* store lower bound on best score */
-    best.score = -INFINITY;
+    if(depth < 5)
+        best.score = alpha;
+    else
+        best.score = -INFINITY;
 
     /* if at a leaf node, return position evaluation */
     if(depth == 0) {
-        best.score = evaluate(game, 0);
+        best.score = evaluate(game);
         best.pv[0].begin = 64;
         return best;
     }

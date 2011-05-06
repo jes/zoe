@@ -75,7 +75,7 @@ uint64_t pawn_moves(Board *board, int tile);
 int king_in_check(Board *board, int colour);
 
 /* search.c */
-int evaluate(Game *game, int print);
+int evaluate(Game *game);
 Move best_move(Game *game);
 
 /* move.c */
