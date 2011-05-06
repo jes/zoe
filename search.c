@@ -155,6 +155,8 @@ MoveScore alphabeta(Game *game, int alpha, int beta, int depth) {
         best.move.begin = 64;
     }
 
+    /* TODO: deal with post mode */
+
     /* show the pv */
     if(depth == 6) {
         printf("# pv: ");

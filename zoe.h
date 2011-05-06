@@ -58,6 +58,9 @@ typedef struct MoveScore {
     Move pv[16];
 } MoveScore;
 
+/* zoe.c */
+extern int post;
+
 /* game.c */
 void reset_game(Game *game);
 

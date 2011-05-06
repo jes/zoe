@@ -7,6 +7,8 @@
 
 #include "zoe.h"
 
+int post = 0;
+
 int main(int argc, char **argv) {
     Game game;
     char *line = NULL;
@@ -45,6 +47,14 @@ int main(int argc, char **argv) {
         else if(strcmp(line, "go") == 0) {
             /* the engine becomes the player currently on move */
             game.engine = game.turn;
+        }
+        else if(strcmp(line, "post") == 0) {
+            /* turn on thinking output */
+            post = 1;
+        }
+        else if(strcmp(line, "nopost") == 0) {
+            /* turn off thinking output */
+            post = 0;
         }
         else if(strcmp(line, "quit") == 0) {
             printf("# Be seeing you...\n");
