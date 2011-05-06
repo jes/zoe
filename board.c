@@ -316,7 +316,6 @@ int king_in_check(Board *board, int colour) {
     int king_tile = bsf(board->b[colour][KING]);
     int x = king_tile % 8;
     int pawn_tile;
-    uint64_t pawn_tiles = 0;
 
     /* pretend the king is a rook, bishop and knight. if it can then take an
      * enemy rook, bishop or knight respectively then it is in check.
@@ -334,8 +333,10 @@ int king_in_check(Board *board, int colour) {
             pawn_tile = king_tile + 7;
         else
             pawn_tile = king_tile - 9;
+
+        if(board->b[!colour][PAWN] & (1ull << pawn_tile))
+            return 1;
     }
-    pawn_tiles |= board->b[!colour][PAWN] & (1 << pawn_tile);
 
     /* check the right square from which pawns may attack */
     if(x < 7) {
@@ -343,12 +344,10 @@ int king_in_check(Board *board, int colour) {
             pawn_tile = king_tile + 9;
         else
             pawn_tile = king_tile - 7;
-    }
-    pawn_tiles |= board->b[!colour][PAWN] & (1 << pawn_tile);
 
-    /* if either of the pawn tile bits are 1, the king is in check */
-    if(pawn_tiles)
-        return 1;
+        if(board->b[!colour][PAWN] & (1ull << pawn_tile))
+            return 1;
+    }
 
     /* TODO: if the enemy king is in an adjacent tile, the king is in check */
 

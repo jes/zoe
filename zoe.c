@@ -7,8 +7,6 @@
 
 #include "zoe.h"
 
-static int protover = 1;
-
 int main(int argc, char **argv) {
     Game game;
     char *line = NULL;
@@ -84,4 +82,6 @@ int main(int argc, char **argv) {
 
         draw_board(&(game.board));
     }
+
+    return 0;
 }

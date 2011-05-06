@@ -95,6 +95,9 @@ MoveScore alphabeta(Game *game, int alpha, int beta, int depth) {
             new = alphabeta(game, -beta, -best.score, depth - 1);
             new.score = -new.score;
 
+            if(depth == 6)
+                printf("%s: %d\n", xboard_move(m), new.score);
+
             /* reset game state */
             game->board = origboard;
             game->turn = !game->turn;
@@ -107,7 +110,7 @@ MoveScore alphabeta(Game *game, int alpha, int beta, int depth) {
 
             /* new best move? */
             if(new.score > best.score) {
-                /* best movescore has the move we just played and the score we
+                /* best movescore has the move we should play and the score we
                  * got from the child alphabeta.
                  */
                 best.move = m;
