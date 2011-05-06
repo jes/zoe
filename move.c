@@ -108,7 +108,41 @@ void apply_move(Game *game, Move m) {
     board->mailbox[m.end] = beginpiece;
     board->b[begincolour][beginpiece] |= endbit;
 
-    /* TODO: en passant, castling, pawn promotion */
+    if(beginpiece == KING) {
+        /* can no longer castle on either side if the king is moved */
+        game->can_castle[colour][QUEENSIDE] = 0;
+        game->can_castle[colour][KINGSIDE] = 0;
+
+        /* move the rook for castling */
+        if(abs(m.begin - m.end) == 2) {
+            if(m.begin > m.end) {/* queenside */
+                m.begin -= 4;
+                m.end++;
+            }
+            else {/* kingside */
+                m.begin += 3;
+                m.end--;
+            }
+
+            /* apply the rook move */
+            apply_move(game, m);
+        }
+    }
+
+    /* can't castle on one side if a rook was moved from it's original place */
+    if(beginpiece == ROOK) {
+        /* queenside */
+        if((m.begin == 0 && colour == WHITE)
+                || (m.begin == 56 && colour == BLACK))
+            game->can_castle[colour][QUEENSIDE] = 0;
+
+        /* kingisde */
+        if((m.begin == 7 && colour == WHITE)
+                || (m.begin == 63 && colour == BLACK))
+            game->can_castle[colour][KINGSIDE] = 0;
+    }
+
+    /* TODO: en passant */
 
     /* toggle current player */
     game->turn = !game->turn;

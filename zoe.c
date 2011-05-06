@@ -14,6 +14,9 @@ int main(int argc, char **argv) {
     char *line = NULL;
     size_t len = 0;
 
+    /* don't quit when xboard sends SIGINT */
+    signal(SIGINT, SIG_IGN);
+
     /* force line buffering on stdin and stdout */
     setvbuf(stdin, NULL, _IOLBF, 0);
     setvbuf(stdout, NULL, _IOLBF, 0);

@@ -6,6 +6,7 @@
 #ifndef ZOE_H_INC
 #define ZOE_H_INC
 
+#include <signal.h>
 #include <string.h>
 #include <stdint.h>
 #include <stdlib.h>
