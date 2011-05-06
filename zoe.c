@@ -64,6 +64,9 @@ int main(int argc, char **argv) {
 
         /* play a move if it is now our turn */
         if(game.turn == game.engine) {
+            /* show the current board evaluation */
+            evaluate(&game, 1);
+
             /* find the best move */
             Move m = best_move(&game);
 

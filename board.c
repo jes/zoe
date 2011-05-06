@@ -46,7 +46,7 @@ void reset_board(Board *board) {
 
     board->b[WHITE][PAWN]     = 0x000000000000ff00ull;
     board->b[WHITE][KNIGHT]   = 0x0000000000000042ull;
-    board->b[WHITE][BISHOP]   = 0x0000000000000028ull;
+    board->b[WHITE][BISHOP]   = 0x0000000000000024ull;
     board->b[WHITE][ROOK]     = 0x0000000000000081ull;
     board->b[WHITE][QUEEN]    = 0x0000000000000008ull;
     board->b[WHITE][KING]     = 0x0000000000000010ull;
@@ -54,7 +54,7 @@ void reset_board(Board *board) {
 
     board->b[BLACK][PAWN]     = 0x00ff000000000000ull;
     board->b[BLACK][KNIGHT]   = 0x4200000000000000ull;
-    board->b[BLACK][BISHOP]   = 0x2800000000000000ull;
+    board->b[BLACK][BISHOP]   = 0x2400000000000000ull;
     board->b[BLACK][ROOK]     = 0x8100000000000000ull;
     board->b[BLACK][QUEEN]    = 0x0800000000000000ull;
     board->b[BLACK][KING]     = 0x1000000000000000ull;

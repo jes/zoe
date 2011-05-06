@@ -9,7 +9,7 @@ static int piece_score[6] = { /* pawn */ 100, /* knight */ 300,
     /* bishop */ 325, /* rook */ 500, /* queen */ 900, /* king */ 0 };
 
 /* return the value of the game for the player currently on move */
-int evaluate(Game *game) {
+int evaluate(Game *game, int print) {
     int score = 0;
     int piece;
 
@@ -18,7 +18,19 @@ int evaluate(Game *game) {
             * count_ones(game->board.b[game->turn][piece]);
         score -= piece_score[piece]
             * count_ones(game->board.b[!game->turn][piece]);
+
+        if(print) {
+            printf("# %s has %d %c's\n", game->turn ? "black" : "white",
+                    count_ones(game->board.b[game->turn][piece]),
+                        "pnbrqk"[piece]);
+            printf("# %s has %d %c's\n", game->turn ? "white" : "black",
+                    count_ones(game->board.b[!game->turn][piece]),
+                        "pnbrqk"[piece]);
+        }
     }
+
+    if(print)
+        printf("# current eval = %d\n", score);
 
     return score;
 }
@@ -30,16 +42,18 @@ MoveScore alphabeta(Game *game, int alpha, int beta, int depth) {
     Board origboard;
     uint64_t pieces = game->board.b[game->turn][OCCUPIED];
     int legal_move = 0;
+    int i;
 
     /* store a copy of the board */
     origboard = game->board;
 
     /* store lower bound on best score */
-    best.score = alpha;
+    best.score = -INFINITY;
 
     /* if at a leaf node, return position evaluation */
     if(depth == 0) {
-        best.score = evaluate(game);
+        best.score = evaluate(game, 0);
+        best.pv[0].begin = 64;
         return best;
     }
 
@@ -84,6 +98,9 @@ MoveScore alphabeta(Game *game, int alpha, int beta, int depth) {
                 game->board = origboard;
                 game->turn = !game->turn;
 
+                if(depth == 6)
+                    printf("%s leaves the king in check\n", xboard_move(m));
+
                 continue;
             }
 
@@ -92,11 +109,23 @@ MoveScore alphabeta(Game *game, int alpha, int beta, int depth) {
              */
             legal_move = 1;
 
-            new = alphabeta(game, -beta, -best.score, depth - 1);
+            /* search the next level; we need to do a full search from the top
+             * level in order to get the pv for each move.
+             */
+            if(depth == 6)
+                new = alphabeta(game, -INFINITY, INFINITY, depth - 1);
+            else
+                new = alphabeta(game, -beta, -best.score, depth - 1);
             new.score = -new.score;
 
-            if(depth == 6)
-                printf("%s: %d\n", xboard_move(m), new.score);
+            /* show the expected line of play from this move at top level */
+            if(depth == 6) {
+                printf("%s: ", xboard_move(m));
+                for(i = 0; i < 16 && new.pv[i].begin < 64; i++) {
+                    printf("%s ", xboard_move(new.pv[i]));
+                }
+                printf("%d\n", new.score);
+            }
 
             /* reset game state */
             game->board = origboard;
@@ -115,6 +144,11 @@ MoveScore alphabeta(Game *game, int alpha, int beta, int depth) {
                  */
                 best.move = m;
                 best.score = new.score;
+
+                for(i = 0; i < 15; i++) {
+                    best.pv[i+1] = new.pv[i];
+                }
+                best.pv[0] = m;
             }
         }
     }
@@ -127,6 +161,15 @@ MoveScore alphabeta(Game *game, int alpha, int beta, int depth) {
             best.score = 0;
 
         best.move.begin = 64;
+    }
+
+    /* show the pv */
+    if(depth == 6) {
+        printf("# pv: ");
+        for(i = 0; i < 16 && best.pv[i].begin < 64; i++) {
+            printf("%s ", xboard_move(best.pv[i]));
+        }
+        printf("%d\n", best.score);
     }
 
     return best;
