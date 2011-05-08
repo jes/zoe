@@ -69,6 +69,7 @@ void apply_move(Game *game, Move m) {
     int beginpiece, endpiece;
     int begincolour, endcolour;
     uint64_t beginbit, endbit;
+    Move m2;
 
     /* find the piece from the mailbox */
     beginpiece = board->mailbox[m.begin];
@@ -116,16 +117,19 @@ void apply_move(Game *game, Move m) {
         /* move the rook for castling */
         if(abs(m.begin - m.end) == 2) {
             if(m.begin > m.end) {/* queenside */
-                m.begin -= 4;
-                m.end++;
+                m2.begin = m.begin + 4;
+                m2.end = m.end + 1;
             }
             else {/* kingside */
-                m.begin += 3;
-                m.end--;
+                m2.begin = m.begin - 3;
+                m2.end = m.end - 1;
             }
 
             /* apply the rook move */
-            apply_move(game, m);
+            apply_move(game, m2);
+
+            /* toggle back to the other player */
+            game->turn = !game->turn;
         }
     }
 
@@ -227,36 +231,59 @@ uint64_t generate_moves(Game *game, int tile) {
     return moves & ~board->b[colour][OCCUPIED];
 }
 
-/* returns 1 if the move is valid and 0 otherwise */
-int is_valid_move(Game game, Move m) {
+/* return 1 if the move is valid and 0 otherwise, printing an appropriate
+ * message if print is non-zero.
+ */
+int is_valid_move(Game game, Move m, int print) {
     Board *board = &(game.board);
     uint64_t beginbit, endbit;
+    char *strmove = xboard_move(m);
 
     beginbit = 1ull << m.begin;
     endbit = 1ull << m.end;
 
     /* ensure that the piece belongs to the current player */
-    if(!(board->b[game.turn][OCCUPIED] & beginbit))
+    if(!(board->b[game.turn][OCCUPIED] & beginbit)) {
+        if(print)
+            printf("Illegal move (%s): that is not your piece.\n", strmove);
         return 0;
+    }
 
     /* ensure that the end tile can be moved to from the begin tile */
-    if(!(generate_moves(&game, m.begin) & endbit))
+    if(!(generate_moves(&game, m.begin) & endbit)) {
+        if(print)
+            printf("Illegal move (%s): that piece can't move like that.\n",
+                    strmove);
         return 0;
-
-    /* ensure that the king is not left in check */
-    apply_move(&game, m);
-    if(king_in_check(board, !game.turn))
-        return 0;
+    }
 
     /* ensure that pawns reaching the eighth rank promote */
     if(!m.promote && ((m.end / 8) == 0 || (m.end / 8) == 7)
-            && board->mailbox[m.begin] == PAWN)
+            && board->mailbox[m.begin] == PAWN) {
+        if(print)
+            printf("Illegal move (%s): pawns reaching the eighth rank must "
+                    "promote.\n", strmove);
         return 0;
+    }
 
     /* ensure that no other pieces promote */
     if(m.promote && (board->mailbox[m.begin] != PAWN
-                || ((m.end / 8) != 0 && (m.end / 8) != 7)))
+                || ((m.end / 8) != 0 && (m.end / 8) != 7))) {
+        if(print)
+            printf("Illegal move (%s): that piece may not promote at this "
+                    "time.\n", strmove);
         return 0;
+    }
+
+    /* ensure that the king is not left in check
+     * NOTE: we apply_move() here, so the state of the game is changed; this
+     * check must be done last */
+    apply_move(&game, m);
+    if(king_in_check(board, !game.turn)) {
+        if(print)
+            printf("Illegal move (%s): king is left in check.\n", strmove);
+        return 0;
+    }
 
     /* hasn't failed any validation, must be a valid move */
     return 1;

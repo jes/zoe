@@ -67,12 +67,8 @@ int main(int argc, char **argv) {
             Move m = get_xboard_move(line);
 
             /* validate and apply the move */
-            if(is_valid_move(game, m))
+            if(is_valid_move(game, m, 1))
                 apply_move(&game, m);
-            else {
-                printf("Illegal move: %s\n", line);
-                printf("# ! Illegal move: %s\n", line);
-            }
         }
 
         /* play a move if it is now our turn */

@@ -74,7 +74,7 @@ void draw_board(Board *board) {
             putchar("PNBRQK.."[board->mailbox[y * 8 + x]]);
 
             if(board->occupied & (1ull << (y * 8 + x)))
-                putchar(' ');
+                putchar((board->b[WHITE][OCCUPIED] & (1ull << (y*8 + x))) ? 'w' : 'b');
             else
                 putchar('.');
         }
