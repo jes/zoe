@@ -316,6 +316,10 @@ int is_threatened(Board *board, int tile) {
     int x = tile % 8;
     int pawn_tile;
 
+    /* if the tile is not occupied, it is not threatened */
+    if(!(board->occupied & (1ull << tile)))
+        return 0;
+
     /* pretend the piece is a rook, bishop, knight and king. if it can then
      * take an enemy rook, bishop, knight or king respectively then it is
      * threatened.

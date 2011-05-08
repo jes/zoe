@@ -110,8 +110,8 @@ void apply_move(Game *game, Move m) {
 
     if(beginpiece == KING) {
         /* can no longer castle on either side if the king is moved */
-        game->can_castle[colour][QUEENSIDE] = 0;
-        game->can_castle[colour][KINGSIDE] = 0;
+        game->can_castle[begincolour][QUEENSIDE] = 0;
+        game->can_castle[begincolour][KINGSIDE] = 0;
 
         /* move the rook for castling */
         if(abs(m.begin - m.end) == 2) {
@@ -132,14 +132,27 @@ void apply_move(Game *game, Move m) {
     /* can't castle on one side if a rook was moved from it's original place */
     if(beginpiece == ROOK) {
         /* queenside */
-        if((m.begin == 0 && colour == WHITE)
-                || (m.begin == 56 && colour == BLACK))
-            game->can_castle[colour][QUEENSIDE] = 0;
+        if((m.begin == 0 && begincolour == WHITE)
+                || (m.begin == 56 && begincolour == BLACK))
+            game->can_castle[begincolour][QUEENSIDE] = 0;
 
         /* kingisde */
-        if((m.begin == 7 && colour == WHITE)
-                || (m.begin == 63 && colour == BLACK))
-            game->can_castle[colour][KINGSIDE] = 0;
+        if((m.begin == 7 && begincolour == WHITE)
+                || (m.begin == 63 && begincolour == BLACK))
+            game->can_castle[begincolour][KINGSIDE] = 0;
+    }
+
+    /* can't castle on one side if that rook is taken */
+    if(endpiece == ROOK) {
+        /* queenside */
+        if((m.end == 0 && endcolour == WHITE)
+                || (m.end == 56 && endcolour == BLACK))
+            game->can_castle[endcolour][QUEENSIDE] = 0;
+
+        /* kingisde */
+        if((m.end == 7 && endcolour == WHITE)
+                || (m.end == 63 && endcolour == BLACK))
+            game->can_castle[endcolour][KINGSIDE] = 0;
     }
 
     /* TODO: en passant */
@@ -154,6 +167,7 @@ uint64_t generate_moves(Game *game, int tile) {
     int colour = !(board->b[WHITE][OCCUPIED] & (1ull << tile));
     int type = board->mailbox[tile];
     uint64_t moves = 0;
+    uint64_t blockers;
 
     switch(type) {
     case PAWN:
@@ -179,11 +193,33 @@ uint64_t generate_moves(Game *game, int tile) {
     case KING:
         moves = king_moves[tile];
 
-        /* TODO: make sure everything is fine */
-        /*if(game->can_castle[colour][KINGSIDE])
-            moves |= 1ull << (tile + 2);
-        if(game->can_castle[colour][QUEENSIDE])
-            moves |= 1ull << (tile - 2);*/
+        /* queenside castling */
+        if(game->can_castle[colour][QUEENSIDE]) {
+            blockers = ((1ull << (tile - 1)) | (1ull << (tile - 2))
+                | (1ull << (tile - 3))) & board->occupied;
+
+            /* if there are no pieces in the way and no intermediate tiles are
+             * threatened, add the move
+             */
+            if(!blockers && !is_threatened(board, tile)
+                    && !is_threatened(board, tile - 1)
+                    && !is_threatened(board, tile - 2))
+                moves |= 1ull << (tile - 2);
+        }
+
+        /* kingisde castling */
+        if(game->can_castle[colour][KINGSIDE]) {
+            blockers = ((1ull << (tile + 1)) | (1ull << (tile + 2)))
+                & board->occupied;
+
+            /* if there are no pieces in the way and no intermediate tiles are
+             * threatened, add the move
+             */
+            if(!blockers && !is_threatened(board, tile)
+                    && !is_threatened(board, tile + 1)
+                    && !is_threatened(board, tile + 2))
+                moves |= 1ull << (tile + 2);
+        }
         break;
     }
 
@@ -192,31 +228,24 @@ uint64_t generate_moves(Game *game, int tile) {
 }
 
 /* returns 1 if the move is valid and 0 otherwise */
-int is_valid_move(Game *game, Move m) {
-    Board *board = &(game->board);
-    Board tmp;
+int is_valid_move(Game game, Move m) {
+    Board *board = &(game.board);
     uint64_t beginbit, endbit;
-    int in_check;
 
     beginbit = 1ull << m.begin;
     endbit = 1ull << m.end;
 
     /* ensure that the piece belongs to the current player */
-    if(!(board->b[game->turn][OCCUPIED] & beginbit))
+    if(!(board->b[game.turn][OCCUPIED] & beginbit))
         return 0;
 
     /* ensure that the end tile can be moved to from the begin tile */
-    if(!(generate_moves(game, m.begin) & endbit))
+    if(!(generate_moves(&game, m.begin) & endbit))
         return 0;
 
     /* ensure that the king is not left in check */
-    tmp = *board;
-    apply_move(game, m);
-    in_check = king_in_check(board, !game->turn);
-    /* undo the move */
-    *board = tmp;
-    game->turn = !game->turn;
-    if(in_check)
+    apply_move(&game, m);
+    if(king_in_check(board, !game.turn))
         return 0;
 
     /* ensure that pawns reaching the eighth rank promote */

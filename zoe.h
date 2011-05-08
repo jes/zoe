@@ -76,11 +76,12 @@ void generate_tables(void);
 uint64_t rook_moves(Board *board, int tile);
 uint64_t bishop_moves(Board *board, int tile);
 uint64_t pawn_moves(Board *board, int tile);
+int is_threatened(Board *board, int tile);
 int king_in_check(Board *board, int colour);
 
 /* search.c */
 int evaluate(Game *game);
-Move best_move(Game *game);
+Move best_move(Game game);
 
 /* move.c */
 char *xboard_move(Move m);
@@ -88,7 +89,7 @@ int is_xboard_move(const char *move);
 Move get_xboard_move(const char *move);
 void apply_move(Game *game, Move m);
 uint64_t generate_moves(Game *game, int tile);
-int is_valid_move(Game *game, Move m);
+int is_valid_move(Game game, Move m);
 
 /* bitscan.c */
 int bsf(uint64_t n);

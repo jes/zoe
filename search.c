@@ -24,16 +24,16 @@ int evaluate(Game *game) {
 }
 
 /* return the best move from the current position along with it's score */
-MoveScore alphabeta(Game *game, int alpha, int beta, int depth) {
+MoveScore alphabeta(Game game, int alpha, int beta, int depth) {
     Move m;
     MoveScore best, new;
-    Board origboard;
-    uint64_t pieces = game->board.b[game->turn][OCCUPIED];
+    Game orig_game;
+    uint64_t pieces = game.board.b[game.turn][OCCUPIED];
     int legal_move = 0;
     int i;
 
-    /* store a copy of the board */
-    origboard = game->board;
+    /* store a copy of the game */
+    orig_game = game;
 
     /* store lower bound on best score */
     if(depth < 5)
@@ -42,8 +42,8 @@ MoveScore alphabeta(Game *game, int alpha, int beta, int depth) {
         best.score = -INFINITY;
 
     /* if at a leaf node, return position evaluation */
-    if(depth == 0) {
-        best.score = evaluate(game);
+    if(depth == 4) {
+        best.score = evaluate(&game);
         best.pv[0].begin = 64;
         return best;
     }
@@ -60,7 +60,7 @@ MoveScore alphabeta(Game *game, int alpha, int beta, int depth) {
         m.begin = piece;
 
         /* generate the moves for this piece */
-        uint64_t moves = generate_moves(game, piece);
+        uint64_t moves = generate_moves(&game, piece);
 
         /* for each of this piece's moves */
         while(moves) {
@@ -74,21 +74,20 @@ MoveScore alphabeta(Game *game, int alpha, int beta, int depth) {
             m.end = move;
 
             /* TODO: try each possiblity of pawn promotion */
-            if(origboard.mailbox[piece] == PAWN
+            if(game.board.mailbox[piece] == PAWN
                     && (m.end / 8 == 0 || m.end / 8 == 7))
                 m.promote = QUEEN;
             else
                 m.promote = 0;
 
+            /* reset game state */
+            game = orig_game;
+
             /* make the move */
-            apply_move(game, m);
+            apply_move(&game, m);
 
             /* don't search this move if the king is left in check */
-            if(king_in_check(&(game->board), !game->turn)) {
-                /* reset game state */
-                game->board = origboard;
-                game->turn = !game->turn;
-
+            if(king_in_check(&(game.board), !game.turn)) {
                 if(depth == 6)
                     printf("%s leaves the king in check\n", xboard_move(m));
 
@@ -118,10 +117,6 @@ MoveScore alphabeta(Game *game, int alpha, int beta, int depth) {
                 printf("%d\n", new.score);
             }
 
-            /* reset game state */
-            game->board = origboard;
-            game->turn = !game->turn;
-
             /* beta cut-off */
             if(new.score >= beta) {
                 best.move = m;
@@ -147,7 +142,7 @@ MoveScore alphabeta(Game *game, int alpha, int beta, int depth) {
 
     /* no legal moves? checkmate or stalemate */
     if(!legal_move) {
-        if(king_in_check(&(game->board), game->turn))
+        if(king_in_check(&(game.board), game.turn))
             best.score = -INFINITY;
         else
             best.score = 0;
@@ -170,14 +165,14 @@ MoveScore alphabeta(Game *game, int alpha, int beta, int depth) {
 }
 
 /* return the best move for the current player */
-Move best_move(Game *game) {
+Move best_move(Game game) {
     MoveScore best = alphabeta(game, -INFINITY, INFINITY, 6);
 
     if(best.move.begin == 64) { /* we had no legal moves */
         if(best.score == 0)
             printf("1/2-1/2 {Stalemate}\n");
         else /* best.score == -INFINITY */ {
-            if(game->turn == WHITE)
+            if(game.turn == WHITE)
                 printf("0-1 {Black mates}\n");
             else
                 printf("1-0 {White mates}\n");

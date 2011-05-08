@@ -67,7 +67,7 @@ int main(int argc, char **argv) {
             Move m = get_xboard_move(line);
 
             /* validate and apply the move */
-            if(is_valid_move(&game, m))
+            if(is_valid_move(game, m))
                 apply_move(&game, m);
             else {
                 printf("Illegal move: %s\n", line);
@@ -81,7 +81,7 @@ int main(int argc, char **argv) {
             printf("# current eval = %d\n", evaluate(&game));
 
             /* find the best move */
-            Move m = best_move(&game);
+            Move m = best_move(game);
 
             /* only do anything if we have a legal move */
             if(m.begin != 64) {
