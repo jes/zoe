@@ -38,13 +38,10 @@ typedef struct Board {
 
 typedef struct Game {
     Board board;
-    int can_castle[2][2];
-    int can_en_passant[2][8];
-    int turn;
-    int quiet_moves;
-    int engine;
-    int sd;
-    int ponder;
+    uint8_t can_castle[2][2];
+    uint8_t quiet_moves;
+    uint8_t turn;
+    uint8_t engine;
 } Game;
 
 typedef struct Move {
