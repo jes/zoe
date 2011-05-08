@@ -42,7 +42,7 @@ MoveScore alphabeta(Game game, int alpha, int beta, int depth) {
         best.score = -INFINITY;
 
     /* if at a leaf node, return position evaluation */
-    if(depth == 4) {
+    if(depth == 0) {
         best.score = evaluate(&game);
         best.pv[0].begin = 64;
         return best;
