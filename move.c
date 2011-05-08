@@ -109,30 +109,6 @@ void apply_move(Game *game, Move m) {
     board->mailbox[m.end] = beginpiece;
     board->b[begincolour][beginpiece] |= endbit;
 
-    if(beginpiece == KING) {
-        /* can no longer castle on either side if the king is moved */
-        game->can_castle[begincolour][QUEENSIDE] = 0;
-        game->can_castle[begincolour][KINGSIDE] = 0;
-
-        /* move the rook for castling */
-        if(abs(m.begin - m.end) == 2) {
-            if(m.begin > m.end) {/* queenside */
-                m2.begin = m.begin + 4;
-                m2.end = m.end + 1;
-            }
-            else {/* kingside */
-                m2.begin = m.begin - 3;
-                m2.end = m.end - 1;
-            }
-
-            /* apply the rook move */
-            apply_move(game, m2);
-
-            /* toggle back to the other player */
-            game->turn = !game->turn;
-        }
-    }
-
     /* can't castle on one side if a rook was moved from it's original place */
     if(beginpiece == ROOK) {
         /* queenside */
@@ -157,6 +133,30 @@ void apply_move(Game *game, Move m) {
         if((m.end == 7 && endcolour == WHITE)
                 || (m.end == 63 && endcolour == BLACK))
             game->can_castle[endcolour][KINGSIDE] = 0;
+    }
+
+    if(beginpiece == KING) {
+        /* can no longer castle on either side if the king is moved */
+        game->can_castle[begincolour][QUEENSIDE] = 0;
+        game->can_castle[begincolour][KINGSIDE] = 0;
+
+        /* move the rook for castling */
+        if(abs(m.begin - m.end) == 2) {
+            if(m.begin > m.end) {/* queenside */
+                m2.begin = m.begin - 4;
+                m2.end = m.end + 1;
+            }
+            else {/* kingside */
+                m2.begin = m.begin + 3;
+                m2.end = m.end - 1;
+            }
+
+            /* apply the rook move */
+            apply_move(game, m2);
+
+            /* toggle back to the other player */
+            game->turn = !game->turn;
+        }
     }
 
     /* TODO: en passant */
@@ -236,6 +236,7 @@ uint64_t generate_moves(Game *game, int tile) {
  */
 int is_valid_move(Game game, Move m, int print) {
     Board *board = &(game.board);
+    Game game2 = game;
     uint64_t beginbit, endbit;
     char *strmove = xboard_move(m);
 
@@ -278,8 +279,8 @@ int is_valid_move(Game game, Move m, int print) {
     /* ensure that the king is not left in check
      * NOTE: we apply_move() here, so the state of the game is changed; this
      * check must be done last */
-    apply_move(&game, m);
-    if(king_in_check(board, !game.turn)) {
+    apply_move(&game2, m);
+    if(king_in_check(&(game2.board), !game.turn)) {
         if(print)
             printf("Illegal move (%s): king is left in check.\n", strmove);
         return 0;
