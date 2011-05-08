@@ -311,28 +311,29 @@ uint64_t pawn_moves(Board *board, int tile) {
     return moves;
 }
 
-/* return 1 if the given colour's king is in check and 0 otherwise */
-int king_in_check(Board *board, int colour) {
-    int king_tile = bsf(board->b[colour][KING]);
-    int x = king_tile % 8;
+int is_threatened(Board *board, int tile) {
+    int colour = !(board->b[WHITE][OCCUPIED] & (1ull << tile));
+    int x = tile % 8;
     int pawn_tile;
 
-    /* pretend the king is a rook, bishop and knight. if it can then take an
-     * enemy rook, bishop or knight respectively then it is in check.
+    /* pretend the piece is a rook, bishop, knight and king. if it can then
+     * take an enemy rook, bishop, knight or king respectively then it is
+     * threatened.
      */
-    if((rook_moves(board, king_tile) & (board->b[!colour][ROOK]
+    if((rook_moves(board, tile) & (board->b[!colour][ROOK]
                     | board->b[!colour][QUEEN]))
-            || (bishop_moves(board, king_tile) & (board->b[!colour][BISHOP]
+            || (bishop_moves(board, tile) & (board->b[!colour][BISHOP]
                     | board->b[!colour][QUEEN]))
-            || (knight_moves[king_tile] & board->b[!colour][KNIGHT]))
+            || (knight_moves[tile] & board->b[!colour][KNIGHT])
+            || (king_moves[tile] & board->b[!colour][KING]))
         return 1;
 
     /* check the left square from which pawns may attack */
     if(x > 0) {
         if(colour == WHITE)
-            pawn_tile = king_tile + 7;
+            pawn_tile = tile + 7;
         else
-            pawn_tile = king_tile - 9;
+            pawn_tile = tile - 9;
 
         if(board->b[!colour][PAWN] & (1ull << pawn_tile))
             return 1;
@@ -341,15 +342,18 @@ int king_in_check(Board *board, int colour) {
     /* check the right square from which pawns may attack */
     if(x < 7) {
         if(colour == WHITE)
-            pawn_tile = king_tile + 9;
+            pawn_tile = tile + 9;
         else
-            pawn_tile = king_tile - 7;
+            pawn_tile = tile - 7;
 
         if(board->b[!colour][PAWN] & (1ull << pawn_tile))
             return 1;
     }
 
-    /* TODO: if the enemy king is in an adjacent tile, the king is in check */
-
     return 0;
+}
+
+/* return 1 if the given colour's king is in check and 0 otherwise */
+int king_in_check(Board *board, int colour) {
+    return is_threatened(board, bsf(board->b[colour][KING]));
 }
