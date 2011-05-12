@@ -79,6 +79,12 @@ void apply_move(Game *game, Move m) {
     beginbit = 1ull << m.begin;
     endbit = 1ull << m.end;
 
+    /* find out if this move is quiet */
+    if(board->occupied & endbit)
+        game->quiet_moves = 0;
+    else
+        game->quiet_moves++;
+
     /* find the colour from white's occupied bitboard */
     begincolour = !(board->b[WHITE][OCCUPIED] & beginbit);
     endcolour = !(board->b[WHITE][OCCUPIED] & endbit);
