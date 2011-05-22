@@ -69,6 +69,8 @@ void apply_move(Game *game, Move m) {
     int beginpiece, endpiece;
     int begincolour, endcolour;
     uint64_t beginbit, endbit;
+    int eptile;
+    uint64_t epbit;
     Move m2;
 
     /* find the piece from the mailbox */
@@ -89,31 +91,43 @@ void apply_move(Game *game, Move m) {
     begincolour = !(board->b[WHITE][OCCUPIED] & beginbit);
     endcolour = !(board->b[WHITE][OCCUPIED] & endbit);
 
+    /* delete a pawn if taken en passant */
+    if(beginpiece == PAWN && (m.end % 8) == game->ep) {
+        eptile = (4 - begincolour) * 8 + game->ep;
+        epbit = 1ull << eptile;
+        board->mailbox[eptile] = EMPTY;
+        board->occupied ^= epbit;
+        board->b[!begincolour][OCCUPIED] ^= epbit;
+        board->b[!begincolour][PAWN] ^= epbit;
+    }
+
+    /* update en passant availability */
+    if(beginpiece == PAWN && abs(m.begin - m.end) == 16)
+        game->ep = m.begin % 8;
+    else
+        game->ep = 9;
+
     /* remove the piece from the begin square */
     board->mailbox[m.begin] = EMPTY;
+    board->occupied ^= beginbit;
     board->b[begincolour][beginpiece] ^= beginbit;
+    board->b[begincolour][OCCUPIED] ^= beginbit;
 
-    /* remove the piece from the end square */
+    /* remove the piece from the end square if necessary */
     if(endpiece != EMPTY) {
         board->b[endcolour][endpiece] ^= endbit;
         board->b[endcolour][OCCUPIED] ^= endbit;
     }
 
-    /* make begin square unoccupied */
-    board->b[begincolour][OCCUPIED] ^= beginbit;
-    board->occupied ^= beginbit;
-
     /* change the piece to it's promotion if appropriate */
     if(m.promote)
         beginpiece = m.promote;
 
-    /* make end square occupied */
-    board->b[begincolour][OCCUPIED] |= endbit;
-    board->occupied |= endbit;
-
     /* insert the piece at the end square */
     board->mailbox[m.end] = beginpiece;
+    board->occupied |= endbit;
     board->b[begincolour][beginpiece] |= endbit;
+    board->b[begincolour][OCCUPIED] |= endbit;
 
     /* can't castle on one side if a rook was moved from it's original place */
     if(beginpiece == ROOK) {
@@ -165,11 +179,22 @@ void apply_move(Game *game, Move m) {
         }
     }
 
-    /* TODO: en passant */
-
     /* toggle current player */
     game->turn = !game->turn;
+
+    /* check board consistency */
+    if(!consistent_board(&(game->board))) {
+        printf("!!! Inconsistent board!\n");
+        draw_board(&(game->board));
+        printf("occupied:\n");
+        draw_bitboard(game->board.occupied);
+        printf("black occupied:\n");
+        draw_bitboard(game->board.b[BLACK][OCCUPIED]);
+        printf("white occupied:\n");
+        draw_bitboard(game->board.b[WHITE][OCCUPIED]);
+    }
 }
+
 /* return the set of all squares the given piece is able to move to, without
  * considering a king left in check */
 uint64_t generate_moves(Game *game, int tile) {
@@ -182,6 +207,11 @@ uint64_t generate_moves(Game *game, int tile) {
     switch(type) {
     case PAWN:
         moves = pawn_moves(board, tile);
+
+        int x = tile % 8, y = tile / 8;
+
+        if((game->ep == x + 1 || game->ep == x - 1) && (y == 4 - colour))
+            moves |= 1ull << ((5 - colour * 3) * 8 + game->ep);
         break;
 
     case KNIGHT:
@@ -286,7 +316,7 @@ int is_valid_move(Game game, Move m, int print) {
      * NOTE: we apply_move() here, so the state of the game is changed; this
      * check must be done last */
     apply_move(&game2, m);
-    if(king_in_check(&(game2.board), !game.turn)) {
+    if(king_in_check(&(game2.board), game.turn)) {
         if(print)
             printf("Illegal move (%s): king is left in check.\n", strmove);
         return 0;

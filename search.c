@@ -70,6 +70,9 @@ MoveScore alphabeta(Game game, int alpha, int beta, int depth) {
             /* remove this move from the set */
             moves ^= 1ull << move;
 
+            /* reset game state */
+            game = orig_game;
+
             /* set the end square of this move */
             m.end = move;
 
@@ -79,9 +82,6 @@ MoveScore alphabeta(Game game, int alpha, int beta, int depth) {
                 m.promote = QUEEN;
             else
                 m.promote = 0;
-
-            /* reset game state */
-            game = orig_game;
 
             /* make the move */
             apply_move(&game, m);

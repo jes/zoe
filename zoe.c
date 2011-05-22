@@ -67,15 +67,17 @@ int main(int argc, char **argv) {
             Move m = get_xboard_move(line);
 
             /* validate and apply the move */
-            if(is_valid_move(game, m, 1))
+            if(is_valid_move(game, m, 1)) {
                 apply_move(&game, m);
+
+                /* give game information */
+                draw_board(&(game.board));
+                printf("# current eval = %d\n", evaluate(&game));
+            }
         }
 
         /* play a move if it is now our turn */
         if(game.turn == game.engine) {
-            /* show the current board evaluation */
-            printf("# current eval = %d\n", evaluate(&game));
-
             /* find the best move */
             Move m = best_move(game);
 
@@ -83,16 +85,15 @@ int main(int argc, char **argv) {
             if(m.begin != 64) {
                 apply_move(&game, m);
 
+                /* give game information */
+                draw_board(&(game.board));
+                printf("# current eval = %d\n", -evaluate(&game));
+
                 /* tell xboard about our move */
                 printf("move %s\n", xboard_move(m));
                 printf("# ! move %s\n", xboard_move(m));
             }
         }
-
-        printf("# engine = %s\n", game.engine ? "black" : "white");
-        printf("# turn = %s\n", game.turn ? "black" : "white");
-
-        draw_board(&(game.board));
     }
 
     return 0;

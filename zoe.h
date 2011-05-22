@@ -42,6 +42,7 @@ typedef struct Game {
     uint8_t quiet_moves;
     uint8_t turn;
     uint8_t engine;
+    uint8_t ep;
 } Game;
 
 typedef struct Move {
@@ -67,6 +68,7 @@ extern uint64_t king_moves[64];
 extern uint64_t knight_moves[64];
 
 void reset_board(Board *board);
+int consistent_board(Board *board);
 void draw_board(Board *board);
 void draw_bitboard(uint64_t board);
 void generate_tables(void);

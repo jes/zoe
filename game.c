@@ -17,6 +17,7 @@ void reset_game(Game *game) {
             game->can_castle[i][j] = 1;
     }
 
+    game->ep = 9;
     game->turn = WHITE;
     game->quiet_moves = 0;
 

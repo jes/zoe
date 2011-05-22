@@ -63,6 +63,79 @@ void reset_board(Board *board) {
     board->occupied = 0xffff00000000ffffull;
 }
 
+/* return 1 if the given board is internally consistent and 0 otherwise */
+int consistent_board(Board *board) {
+    int i, c, p;
+    int piece;
+    uint64_t piecebit;
+    int colour;
+
+    /* the colour occupied sets do not match the overall occupied set */
+    if(board->occupied !=
+            (board->b[WHITE][OCCUPIED] | board->b[BLACK][OCCUPIED]))
+        return 0;
+
+    /* for each square on the board */
+    for(i = 0; i < 64; i++) {
+        piece = board->mailbox[i];
+        piecebit = 1ull << i;
+
+        colour = -1;
+
+        if(piece == EMPTY) {
+            /* if an empty square is considered occupied, fail */
+            if(board->occupied & piecebit)
+                return 0;
+
+            if(board->b[WHITE][OCCUPIED] & piecebit)
+                return 0;
+
+            if(board->b[BLACK][OCCUPIED] & piecebit)
+                return 0;
+        }
+        else {
+            /* if white is occupied, it's white's piece */
+            if(board->b[WHITE][OCCUPIED] & piecebit)
+                colour = WHITE;
+
+            /* if black is occupied, it's blacks... */
+            if(board->b[BLACK][OCCUPIED] & piecebit) {
+                /* ...unless white also has it */
+                if(colour == WHITE)
+                    return 0;
+
+                colour = BLACK;
+            }
+
+            /* if no player has the piece, fail */
+            if(colour == -1)
+                return 0;
+
+            /* if this colour doesn't have the bit in it's piece board, fail */
+            if(!(board->b[colour][piece] & piecebit))
+                return 0;
+        }
+
+        /* for each colour */
+        for(c = 0; c < 2; c++) {
+            /* for each piece */
+            for(p = 0; p < 6; p++) {
+                /* if this is not the desired piece and colour */
+                if(p == piece && c == colour)
+                    continue;
+
+                /* check that the player has the bit set in the appropriate
+                 * place.
+                 */
+                if(board->b[c][p] & piecebit)
+                    return 0;
+            }
+        }
+    }
+
+    return 1;
+}
+
 /* draw the board to stdout */
 void draw_board(Board *board) {
     int x, y;
@@ -259,7 +332,7 @@ uint64_t pawn_moves(Board *board, int tile) {
     int x = tile % 8, y = tile / 8;
     int target;
 
-    /* TODO: en passant, bitboards */
+    /* TODO: bitboards */
 
     /* attack left if it's an enemy */
     if(x > 0) {
