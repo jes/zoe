@@ -1,0 +1,15 @@
+#!/bin/sh
+# Start xboard with a game against zoe
+# James Stanley 2011
+
+# truncate zoe.out
+cat /dev/null > zoe.out
+
+# follow the output of zoe.out
+tail -f zoe.out &
+
+# run xboard
+xboard -fcp ./zoelog
+
+# kill the backgrounded tail
+kill $!
