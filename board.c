@@ -69,11 +69,16 @@ int consistent_board(Board *board) {
     int piece;
     uint64_t piecebit;
     int colour;
+    static char *colourname[2] = { "black", "white" };
+    static char *piecename[7] = { "pawn", "knight", "bishop", "rook",
+        "queen", "occupied" };
 
     /* the colour occupied sets do not match the overall occupied set */
     if(board->occupied !=
-            (board->b[WHITE][OCCUPIED] | board->b[BLACK][OCCUPIED]))
+            (board->b[WHITE][OCCUPIED] | board->b[BLACK][OCCUPIED])) {
+        fprintf(stderr, "occupied != white | black\n");
         return 0;
+    }
 
     /* for each square on the board */
     for(i = 0; i < 64; i++) {
@@ -84,36 +89,48 @@ int consistent_board(Board *board) {
 
         if(piece == EMPTY) {
             /* if an empty square is considered occupied, fail */
-            if(board->occupied & piecebit)
+            if(board->occupied & piecebit) {
+                fprintf(stderr, "empty square in occupied\n");
                 return 0;
+            }
 
-            if(board->b[WHITE][OCCUPIED] & piecebit)
+            if(board->b[WHITE][OCCUPIED] & piecebit) {
+                fprintf(stderr, "empty square in white occupied\n");
                 return 0;
+            }
 
-            if(board->b[BLACK][OCCUPIED] & piecebit)
+            if(board->b[BLACK][OCCUPIED] & piecebit) {
+                fprintf(stderr, "empty square in black occupied\n");
                 return 0;
+            }
         }
         else {
             /* if white is occupied, it's white's piece */
             if(board->b[WHITE][OCCUPIED] & piecebit)
                 colour = WHITE;
 
-            /* if black is occupied, it's blacks... */
+            /* if black is occupied, it's black's... */
             if(board->b[BLACK][OCCUPIED] & piecebit) {
                 /* ...unless white also has it */
-                if(colour == WHITE)
+                if(colour == WHITE) {
+                    fprintf(stderr, "both teams own the piece\n");
                     return 0;
+                }
 
                 colour = BLACK;
             }
 
             /* if no player has the piece, fail */
-            if(colour == -1)
+            if(colour == -1) {
+                fprintf(stderr, "neither team owns the piece\n");
                 return 0;
+            }
 
             /* if this colour doesn't have the bit in it's piece board, fail */
-            if(!(board->b[colour][piece] & piecebit))
+            if(!(board->b[colour][piece] & piecebit)) {
+                fprintf(stderr, "piece occupied but not in piece board\n");
                 return 0;
+            }
         }
 
         /* for each colour */
@@ -124,11 +141,15 @@ int consistent_board(Board *board) {
                 if(p == piece && c == colour)
                     continue;
 
-                /* check that the player has the bit set in the appropriate
-                 * place.
+                /* check that the player doesn't have the bit set in an
+                 * inappropriate place.
                  */
-                if(board->b[c][p] & piecebit)
+                if(board->b[c][p] & piecebit) {
+                    fprintf(stderr, "inappropriate bit set (%s %s, square "
+                            "%c%c)\n", colourname[c], piecename[p],
+                            'a' + i % 8, '1' + i / 8);
                     return 0;
+                }
             }
         }
     }
@@ -139,15 +160,21 @@ int consistent_board(Board *board) {
 /* draw the board to stdout */
 void draw_board(Board *board) {
     int x, y;
+    uint8_t piece;
 
     printf("#\n# 8 ");
 
     for(y = 7; y >= 0; y--) {
         for(x = 0; x < 8; x++) {
-            putchar("PNBRQK.."[board->mailbox[y * 8 + x]]);
+            piece = board->mailbox[y * 8 + x];
+            if(piece < 8)
+                putchar("PNBRQK?."[piece]);
+            else
+                putchar('?');
 
             if(board->occupied & (1ull << (y * 8 + x)))
-                putchar((board->b[WHITE][OCCUPIED] & (1ull << (y*8 + x))) ? 'w' : 'b');
+                putchar((board->b[WHITE][OCCUPIED] & (1ull << (y*8 + x)))
+                        ? 'w' : 'b');
             else
                 putchar('.');
         }
