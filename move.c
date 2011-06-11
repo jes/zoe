@@ -92,7 +92,8 @@ void apply_move(Game *game, Move m) {
     endcolour = !(board->b[WHITE][OCCUPIED] & endbit);
 
     /* delete a pawn if taken en passant */
-    if(beginpiece == PAWN && (m.end % 8) == game->ep) {
+    if(beginpiece == PAWN && (m.begin == ((5 - begincolour * 3) * 8 + game->ep))
+                && ((m.end % 8) == game->ep)) {
         eptile = (4 - begincolour) * 8 + game->ep;
         epbit = 1ull << eptile;
         board->mailbox[eptile] = EMPTY;
@@ -171,11 +172,16 @@ void apply_move(Game *game, Move m) {
                 m2.end = m.end - 1;
             }
 
+            /* skip the opposing player's turn because we need to move another
+             * piece
+             */
+            game->turn = !game->turn;
+
+            /* make sure we don't try to promote */
+            m2.promote = 0;
+
             /* apply the rook move */
             apply_move(game, m2);
-
-            /* toggle back to the other player */
-            game->turn = !game->turn;
         }
     }
 
@@ -192,6 +198,7 @@ void apply_move(Game *game, Move m) {
         draw_bitboard(game->board.b[BLACK][OCCUPIED]);
         printf("white occupied:\n");
         draw_bitboard(game->board.b[WHITE][OCCUPIED]);
+        exit(1);
     }
 }
 
