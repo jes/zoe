@@ -9,7 +9,7 @@ cat /dev/null > zoe.out
 tail -f zoe.out &
 
 # run xboard
-xboard -fcp ./zoelog
+xboard -fcp ./zoelog "$@"
 
 # kill the backgrounded tail
 kill $!

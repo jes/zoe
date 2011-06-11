@@ -140,6 +140,9 @@ MoveScore alphabeta(Game game, int alpha, int beta, int depth) {
         }
     }
 
+    /* reset to original game */
+    game = orig_game;
+
     /* no legal moves? checkmate or stalemate */
     if(!legal_move) {
         if(king_in_check(&(game.board), game.turn))
