@@ -85,6 +85,12 @@ int consistent_board(Board *board) {
         piece = board->mailbox[i];
         piecebit = 1ull << i;
 
+        /* check that the piece is real */
+        if(piece > 5 && piece != EMPTY) {
+            fprintf(stderr, "invalid piece in mailbox\n");
+            return 0;
+        }
+
         colour = -1;
 
         if(piece == EMPTY) {
