@@ -4,7 +4,7 @@
 # Run with "make cflags=foo" to add to CFLAGS (same for LDFLAGS)
 
 LDFLAGS = $(ldflags)
-CFLAGS  = -DASM_BITSCAN $(cflags)
+CFLAGS  = -Wall -DASM_BITSCAN $(cflags)
 OBJS    = bitscan.o board.o game.o move.o search.o zoe.o
 
 .PHONY: all
@@ -13,6 +13,9 @@ all: zoe
 .PHONY: clean
 clean:
 	rm -f $(OBJS)
+
+tags:
+	ctags *.[ch]
 
 zoe: $(OBJS)
 	$(CC) -o zoe $(LDFLAGS) $(OBJS)
