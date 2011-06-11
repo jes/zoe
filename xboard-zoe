@@ -5,7 +5,7 @@
 # truncate zoe.out
 cat /dev/null > zoe.out
 
-# follow the output of zoe.out
+# follow the output of zoe
 tail -f zoe.out &
 
 # run xboard

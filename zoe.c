@@ -27,6 +27,9 @@ int main(int argc, char **argv) {
     /* setup the initial game state */
     reset_game(&game);
 
+    /* let xboard know that we are done initialising */
+    puts("feature done=1");
+
     /* repeatedly handle commands from xboard */
     while(1) {
         /* attempt to read a line from stdin */
