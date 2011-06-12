@@ -5,6 +5,8 @@
 
 #include "zoe.h"
 
+#define SEARCHDEPTH 4
+
 static int piece_score[6] = { /* pawn */ 100, /* knight */ 300,
     /* bishop */ 325, /* rook */ 500, /* queen */ 900, /* king */ 0 };
 
@@ -29,6 +31,7 @@ MoveScore alphabeta(Game game, int alpha, int beta, int depth) {
     MoveScore best, new;
     Game orig_game;
     uint64_t pieces = game.board.b[game.turn][OCCUPIED];
+    uint64_t considered_moves;
     int legal_move = 0;
     int i;
 
@@ -36,7 +39,7 @@ MoveScore alphabeta(Game game, int alpha, int beta, int depth) {
     orig_game = game;
 
     /* store lower bound on best score */
-    if(depth < 5)
+    if(depth < SEARCHDEPTH - 1)
         best.score = alpha;
     else
         best.score = -INFINITY;
@@ -61,6 +64,7 @@ MoveScore alphabeta(Game game, int alpha, int beta, int depth) {
 
         /* generate the moves for this piece */
         uint64_t moves = generate_moves(&game, piece);
+        uint64_t orig_moves = moves;
 
         /* for each of this piece's moves */
         while(moves) {
@@ -88,7 +92,7 @@ MoveScore alphabeta(Game game, int alpha, int beta, int depth) {
 
             /* don't search this move if the king is left in check */
             if(king_in_check(&(game.board), !game.turn)) {
-                if(depth == 6)
+                if(depth == SEARCHDEPTH)
                     printf("%s leaves the king in check\n", xboard_move(m));
 
                 continue;
@@ -102,14 +106,14 @@ MoveScore alphabeta(Game game, int alpha, int beta, int depth) {
             /* search the next level; we need to do a full search from the top
              * level in order to get the pv for each move.
              */
-            if(depth == 6)
+            if(depth == SEARCHDEPTH)
                 new = alphabeta(game, -INFINITY, INFINITY, depth - 1);
             else
                 new = alphabeta(game, -beta, -best.score, depth - 1);
             new.score = -new.score;
 
             /* show the expected line of play from this move at top level */
-            if(depth == 6) {
+            if(depth == SEARCHDEPTH) {
                 printf("%s: ", xboard_move(m));
                 for(i = 0; i < 16 && new.pv[i].begin < 64; i++) {
                     printf("%s ", xboard_move(new.pv[i]));
@@ -131,7 +135,9 @@ MoveScore alphabeta(Game game, int alpha, int beta, int depth) {
                  */
                 best.move = m;
                 best.score = new.score;
+                considered_moves = orig_moves;
 
+                /* copy the pv from the best move */
                 for(i = 0; i < 15; i++) {
                     best.pv[i+1] = new.pv[i];
                 }
@@ -156,12 +162,14 @@ MoveScore alphabeta(Game game, int alpha, int beta, int depth) {
     /* TODO: deal with post mode */
 
     /* show the pv */
-    if(depth == 6) {
+    if(depth == SEARCHDEPTH) {
         printf("# pv: ");
         for(i = 0; i < 16 && best.pv[i].begin < 64; i++) {
             printf("%s ", xboard_move(best.pv[i]));
         }
         printf("%d\n", best.score);
+        printf("# considered moves for piece: ");
+        draw_bitboard(considered_moves);
     }
 
     return best;
@@ -169,7 +177,7 @@ MoveScore alphabeta(Game game, int alpha, int beta, int depth) {
 
 /* return the best move for the current player */
 Move best_move(Game game) {
-    MoveScore best = alphabeta(game, -INFINITY, INFINITY, 6);
+    MoveScore best = alphabeta(game, -INFINITY, INFINITY, SEARCHDEPTH);
 
     if(best.move.begin == 64) { /* we had no legal moves */
         if(best.score == 0)
@@ -181,6 +189,8 @@ Move best_move(Game game) {
                 printf("1-0 {White mates}\n");
         }
     }
+
+    /* TODO: consider our enemy's options and see if we've won, etc. */
 
     return best.move;
 }

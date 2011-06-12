@@ -73,6 +73,19 @@ void apply_move(Game *game, Move m) {
     uint64_t epbit;
     Move m2;
 
+    /* check board consistency */
+    if(!consistent_board(&(game->board))) {
+        printf("!!! Inconsistent board at start of apply_move!\n");
+        draw_board(&(game->board));
+        printf("occupied:\n");
+        draw_bitboard(game->board.occupied);
+        printf("black occupied:\n");
+        draw_bitboard(game->board.b[BLACK][OCCUPIED]);
+        printf("white occupied:\n");
+        draw_bitboard(game->board.b[WHITE][OCCUPIED]);
+        exit(1);
+    }
+
     /* find the piece from the mailbox */
     beginpiece = board->mailbox[m.begin];
     endpiece = board->mailbox[m.end];
@@ -190,7 +203,7 @@ void apply_move(Game *game, Move m) {
 
     /* check board consistency */
     if(!consistent_board(&(game->board))) {
-        printf("!!! Inconsistent board!\n");
+        printf("!!! Inconsistent board at end of apply_move!\n");
         draw_board(&(game->board));
         printf("occupied:\n");
         draw_bitboard(game->board.occupied);

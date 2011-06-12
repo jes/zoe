@@ -417,6 +417,7 @@ uint64_t pawn_moves(Board *board, int tile) {
     return moves;
 }
 
+/* return 1 if the given tile is threatened by an enemy and 0 otherwise */
 int is_threatened(Board *board, int tile) {
     int colour = !(board->b[WHITE][OCCUPIED] & (1ull << tile));
     int x = tile % 8;
