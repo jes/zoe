@@ -31,7 +31,6 @@ MoveScore alphabeta(Game game, int alpha, int beta, int depth) {
     MoveScore best, new;
     Game orig_game;
     uint64_t pieces = game.board.b[game.turn][OCCUPIED];
-    uint64_t considered_moves;
     int legal_move = 0;
     int i;
 
@@ -62,9 +61,11 @@ MoveScore alphabeta(Game game, int alpha, int beta, int depth) {
         /* set the start square of the moves */
         m.begin = piece;
 
+        /* reset game state */
+        game = orig_game;
+
         /* generate the moves for this piece */
         uint64_t moves = generate_moves(&game, piece);
-        uint64_t orig_moves = moves;
 
         /* for each of this piece's moves */
         while(moves) {
@@ -74,11 +75,11 @@ MoveScore alphabeta(Game game, int alpha, int beta, int depth) {
             /* remove this move from the set */
             moves ^= 1ull << move;
 
-            /* reset game state */
-            game = orig_game;
-
             /* set the end square of this move */
             m.end = move;
+
+            /* reset game state */
+            game = orig_game;
 
             /* TODO: try each possiblity of pawn promotion */
             if(game.board.mailbox[piece] == PAWN
@@ -135,7 +136,6 @@ MoveScore alphabeta(Game game, int alpha, int beta, int depth) {
                  */
                 best.move = m;
                 best.score = new.score;
-                considered_moves = orig_moves;
 
                 /* copy the pv from the best move */
                 for(i = 0; i < 15; i++) {
@@ -151,8 +151,12 @@ MoveScore alphabeta(Game game, int alpha, int beta, int depth) {
 
     /* no legal moves? checkmate or stalemate */
     if(!legal_move) {
+        /* adding (depth - SEARCHDEPTH) ensures that we drag out a forced
+         * loss for as long as possible, and also that we force a win as
+         * quickly as possible.
+         */
         if(king_in_check(&(game.board), game.turn))
-            best.score = -INFINITY;
+            best.score = -INFINITY + (depth - SEARCHDEPTH);
         else
             best.score = 0;
 
@@ -168,8 +172,6 @@ MoveScore alphabeta(Game game, int alpha, int beta, int depth) {
             printf("%s ", xboard_move(best.pv[i]));
         }
         printf("%d\n", best.score);
-        printf("# considered moves for piece: ");
-        draw_bitboard(considered_moves);
     }
 
     return best;

@@ -283,7 +283,9 @@ uint64_t generate_moves(Game *game, int tile) {
         break;
     }
 
-    /* return the moves, with any moves that take our own tiles removed */
+    /* return the moves, removing the final tile if it ended on our own
+     * colour.
+     */
     return moves & ~board->b[colour][OCCUPIED];
 }
 
