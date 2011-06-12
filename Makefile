@@ -14,7 +14,7 @@ all: zoe
 clean:
 	rm -f $(OBJS)
 
-tags:
+tags: *.[ch]
 	ctags *.[ch]
 
 zoe: $(OBJS)
