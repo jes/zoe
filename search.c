@@ -5,7 +5,7 @@
 
 #include "zoe.h"
 
-#define SEARCHDEPTH 4
+#define SEARCHDEPTH 6
 
 static int piece_score[6] = { /* pawn */ 100, /* knight */ 300,
     /* bishop */ 325, /* rook */ 500, /* queen */ 900, /* king */ 0 };
@@ -99,10 +99,14 @@ MoveScore alphabeta(Game game, int alpha, int beta, int depth) {
                 continue;
             }
 
-            /* if there is a move we can play that doesn't leave the king in
-             * check, then we have at least one legal move.
+            /* if this is the first legal move, store it as the best so that
+             * we at least have a move to play, and remember that we have found
+             * a legal move.
              */
-            legal_move = 1;
+            if(!legal_move) {
+                best.move = m;
+                legal_move = 1;
+            }
 
             /* search the next level; we need to do a full search from the top
              * level in order to get the pv for each move.

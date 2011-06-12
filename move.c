@@ -74,7 +74,7 @@ void apply_move(Game *game, Move m) {
     Move m2;
 
     /* check board consistency */
-    if(!consistent_board(&(game->board))) {
+    /*if(!consistent_board(&(game->board))) {
         printf("!!! Inconsistent board at start of apply_move!\n");
         draw_board(&(game->board));
         printf("occupied:\n");
@@ -84,7 +84,7 @@ void apply_move(Game *game, Move m) {
         printf("white occupied:\n");
         draw_bitboard(game->board.b[WHITE][OCCUPIED]);
         exit(1);
-    }
+    }*/
 
     /* find the piece from the mailbox */
     beginpiece = board->mailbox[m.begin];
@@ -202,7 +202,7 @@ void apply_move(Game *game, Move m) {
     game->turn = !game->turn;
 
     /* check board consistency */
-    if(!consistent_board(&(game->board))) {
+    /*if(!consistent_board(&(game->board))) {
         printf("!!! Inconsistent board at end of apply_move!\n");
         draw_board(&(game->board));
         printf("occupied:\n");
@@ -212,7 +212,7 @@ void apply_move(Game *game, Move m) {
         printf("white occupied:\n");
         draw_bitboard(game->board.b[WHITE][OCCUPIED]);
         exit(1);
-    }
+    }*/
 }
 
 /* return the set of all squares the given piece is able to move to, without
