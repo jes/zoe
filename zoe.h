@@ -57,11 +57,10 @@ typedef struct MoveScore {
     Move pv[16];
 } MoveScore;
 
-/* zoe.c */
-extern int post;
-
-/* game.c */
-void reset_game(Game *game);
+/* bitscan.c */
+int bsf(uint64_t n);
+int bsr(uint64_t n);
+int count_ones(uint64_t n);
 
 /* board.c */
 extern uint64_t king_moves[64];
@@ -78,9 +77,8 @@ uint64_t pawn_moves(Board *board, int tile);
 int is_threatened(Board *board, int tile);
 int king_in_check(Board *board, int colour);
 
-/* search.c */
-int evaluate(Game *game);
-Move best_move(Game game);
+/* game.c */
+void reset_game(Game *game);
 
 /* move.c */
 char *xboard_move(Move m);
@@ -90,9 +88,11 @@ void apply_move(Game *game, Move m);
 uint64_t generate_moves(Game *game, int tile);
 int is_valid_move(Game game, Move m, int print);
 
-/* bitscan.c */
-int bsf(uint64_t n);
-int bsr(uint64_t n);
-int count_ones(uint64_t n);
+/* search.c */
+int evaluate(Game *game);
+Move best_move(Game game);
+
+/* zoe.c */
+extern int post;
 
 #endif
