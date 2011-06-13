@@ -16,7 +16,7 @@ void init_zobrist(void) {
         for(square = 0; square < 64; square++) {
             /* fill in each byte individually; this can't fill in each short
              * individually because RAND_MAX is only guaranteed to be at least
-             * 32767, meaning we're only guaranteed bits.
+             * 32767, meaning we're only guaranteed 15 bits.
              */
             for(i = 0; i < 8; i++)
                 zobrist[piece][square] =
