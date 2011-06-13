@@ -21,8 +21,11 @@ int main(int argc, char **argv) {
     setvbuf(stdin, NULL, _IOLBF, 0);
     setvbuf(stdout, NULL, _IOLBF, 0);
 
+    /* build zobrist tables */
+    init_zobrist();
+
     /* build tables for move generation */
-    generate_tables();
+    generate_movetables();
 
     /* setup the initial game state */
     reset_game(&game);

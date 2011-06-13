@@ -70,7 +70,7 @@ void reset_board(Board *board);
 int consistent_board(Board *board);
 void draw_board(Board *board);
 void draw_bitboard(uint64_t board);
-void generate_tables(void);
+void generate_movetables(void);
 uint64_t rook_moves(Board *board, int tile);
 uint64_t bishop_moves(Board *board, int tile);
 uint64_t pawn_moves(Board *board, int tile);
@@ -79,6 +79,11 @@ int king_in_check(Board *board, int colour);
 
 /* game.c */
 void reset_game(Game *game);
+
+/* hash.c */
+extern uint64_t zobrist[8][64];
+
+void init_zobrist(void);
 
 /* move.c */
 char *xboard_move(Move m);

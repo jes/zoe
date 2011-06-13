@@ -314,7 +314,7 @@ void generate_rays(void) {
 }
 
 /* generate all movement tables */
-void generate_tables(void) {
+void generate_movetables(void) {
     generate_rays();
     generate_king_moves();
     generate_knight_moves();
