@@ -10,6 +10,7 @@ uint64_t zobrist[8][64];
 /* initialise the table of zobrist numbers */
 void init_zobrist(void) {
     int piece, square;
+    int i;
 
     /* generate the zobrist number for each piece on each square */
     for(piece = 0; piece < 8; piece++) {

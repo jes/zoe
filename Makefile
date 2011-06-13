@@ -5,7 +5,7 @@
 
 LDFLAGS = $(ldflags)
 CFLAGS  = -Wall -DASM_BITSCAN $(cflags)
-OBJS    = bitscan.o board.o game.o hash.c move.o search.o zoe.o
+OBJS    = bitscan.o board.o game.o hash.o move.o search.o zoe.o
 
 .PHONY: all
 all: zoe
