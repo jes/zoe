@@ -126,12 +126,15 @@ void apply_move(Game *game, Move m) {
     board->occupied ^= beginbit;
     board->b[begincolour][beginpiece] ^= beginbit;
     board->b[begincolour][OCCUPIED] ^= beginbit;
+    board->zobrist ^= zobrist[beginpiece][m.begin];
+    board->zobrist ^= zobrist[EMPTY][m.begin];
 
     /* remove the piece from the end square if necessary */
     if(endpiece != EMPTY) {
         board->b[endcolour][endpiece] ^= endbit;
         board->b[endcolour][OCCUPIED] ^= endbit;
     }
+    board->zobrist ^= zobrist[endpiece][m.end];
 
     /* change the piece to it's promotion if appropriate */
     if(m.promote)
@@ -142,6 +145,7 @@ void apply_move(Game *game, Move m) {
     board->occupied |= endbit;
     board->b[begincolour][beginpiece] |= endbit;
     board->b[begincolour][OCCUPIED] |= endbit;
+    board->zobrist ^= zobrist[beginpiece][m.end];
 
     /* can't castle on one side if a rook was moved from it's original place */
     if(beginpiece == ROOK) {

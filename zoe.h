@@ -34,6 +34,7 @@ typedef struct Board {
     uint8_t mailbox[64];
     uint64_t b[2][7];
     uint64_t occupied;
+    uint64_t zobrist;
 } Board;
 
 typedef struct Game {

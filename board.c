@@ -61,6 +61,9 @@ void reset_board(Board *board) {
     board->b[BLACK][OCCUPIED] = 0xffff000000000000ull;
 
     board->occupied = 0xffff00000000ffffull;
+
+    /* this can be any value as long as it is consistent */
+    board->zobrist = 0;
 }
 
 /* return 1 if the given board is internally consistent and 0 otherwise */
