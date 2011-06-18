@@ -9,7 +9,8 @@ cat /dev/null > zoe.out
 tail -f zoe.out &
 
 # kill tail when ^C is typed
-trap "kill $!; echo; exit" 2
+SIGINT=2
+trap "kill $!; echo; exit" $SIGINT
 
 # run xboard
 xboard -fcp ./zoelog "$@"
