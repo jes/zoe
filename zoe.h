@@ -28,7 +28,13 @@
 #define OCCUPIED 6
 #define EMPTY    7
 
+#define EXACTLY 0
+#define ATLEAST 1
+#define ATMOST  2
+
 #define INFINITY (1 << 30)
+
+#define HT_SIZE (1 << 22)
 
 typedef struct Board {
     uint8_t mailbox[64];
@@ -58,6 +64,14 @@ typedef struct MoveScore {
     Move pv[16];
 } MoveScore;
 
+typedef struct HashEntry {
+    uint64_t key;
+    uint8_t depth;
+    uint8_t type;
+    uint8_t colour;
+    MoveScore move;
+} HashEntry;
+
 /* bitscan.c */
 int bsf(uint64_t n);
 int bsr(uint64_t n);
@@ -85,6 +99,10 @@ void reset_game(Game *game);
 extern uint64_t zobrist[8][64];
 
 void init_zobrist(void);
+void hash_store(uint64_t key, uint8_t depth, uint8_t type, MoveScore move,
+        int colour);
+MoveScore hash_retrieve(uint64_t key, uint8_t depth, int alpha, int beta,
+        int colour);
 
 /* move.c */
 char *xboard_move(Move m);

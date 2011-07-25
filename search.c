@@ -32,10 +32,23 @@ MoveScore alphabeta(Game game, int alpha, int beta, int depth) {
     Game orig_game;
     uint64_t pieces = game.board.b[game.turn][OCCUPIED];
     int legal_move = 0;
+    int hashtype = ATMOST;
     int i;
+    int print = 0;
 
     /* store a copy of the game */
     orig_game = game;
+
+    /* try to retrieve the score from the transposition table */
+    new = hash_retrieve(orig_game.board.zobrist, depth, alpha, beta,
+            orig_game.turn);
+    if(new.move.begin != 64) {
+        /* TODO: ensure that the move is valid (i.e. that this zobrist key is
+         * not just a coincidence).
+         */
+        print = 0;
+        return new;
+    }
 
     /* store lower bound on best score */
     if(depth < SEARCHDEPTH - 1)
@@ -45,8 +58,11 @@ MoveScore alphabeta(Game game, int alpha, int beta, int depth) {
 
     /* if at a leaf node, return position evaluation */
     if(depth == 0) {
+        best.move.begin = 64;
         best.score = evaluate(&game);
         best.pv[0].begin = 64;
+        hash_store(orig_game.board.zobrist, depth, EXACTLY, best,
+                orig_game.turn);
         return best;
     }
 
@@ -88,12 +104,15 @@ MoveScore alphabeta(Game game, int alpha, int beta, int depth) {
             else
                 m.promote = 0;
 
+            if(print)
+                printf("considering playing %s\n", xboard_move(m));
+
             /* make the move */
             apply_move(&game, m);
 
             /* don't search this move if the king is left in check */
             if(king_in_check(&(game.board), !game.turn)) {
-                if(depth == SEARCHDEPTH)
+                if(depth == SEARCHDEPTH && print)
                     printf("%s leaves the king in check\n", xboard_move(m));
 
                 continue;
@@ -108,6 +127,15 @@ MoveScore alphabeta(Game game, int alpha, int beta, int depth) {
                 legal_move = 1;
             }
 
+            if(print) {
+                if(depth == SEARCHDEPTH)
+                    printf("new = alphabeta(game, -INFINITY, INFINITY, %d);\n",
+                            depth - 1);
+                else
+                    printf("new = alphabeta(game, %d, %d, %d);\n", -beta,
+                            -best.score, depth - 1);
+            }
+
             /* search the next level; we need to do a full search from the top
              * level in order to get the pv for each move.
              */
@@ -116,6 +144,9 @@ MoveScore alphabeta(Game game, int alpha, int beta, int depth) {
             else
                 new = alphabeta(game, -beta, -best.score, depth - 1);
             new.score = -new.score;
+
+            if(print)
+                printf("new.score = %d\n", new.score);
 
             /* show the expected line of play from this move at top level */
             if(depth == SEARCHDEPTH) {
@@ -130,6 +161,10 @@ MoveScore alphabeta(Game game, int alpha, int beta, int depth) {
             if(new.score >= beta) {
                 best.move = m;
                 best.score = beta;
+                hash_store(orig_game.board.zobrist, depth, ATLEAST, best,
+                        orig_game.turn);
+                if(print)
+                    printf("depth %d, beta cutoff with new.score=%d >= beta=%d; %s\n", depth, new.score, beta, xboard_move(best.move));
                 return best;
             }
 
@@ -140,6 +175,13 @@ MoveScore alphabeta(Game game, int alpha, int beta, int depth) {
                  */
                 best.move = m;
                 best.score = new.score;
+
+                if(print)
+                    printf("depth %d, new.score=%d > best.score=%d; %s\n",
+                            depth, new.score, best.score, xboard_move(m));
+
+                /* we know the score for this node is exactly best.score */
+                hashtype = EXACTLY;
 
                 /* copy the pv from the best move */
                 for(i = 0; i < 15; i++) {
@@ -166,8 +208,20 @@ MoveScore alphabeta(Game game, int alpha, int beta, int depth) {
 
         best.move.begin = 64;
     }
+    else {
+        /* we found a legal move and more searching was done, so we have a
+         * lower bound on the score.
+         */
+        hash_store(orig_game.board.zobrist, depth, hashtype, best,
+                orig_game.turn);
+    }
 
     /* TODO: deal with post mode */
+
+    char *hashtypename[3] = {"exact", "atleast", "atmost"};
+    if(print)
+        printf("depth %d about to return %s (%d), hashtype=%s\n", depth,
+                xboard_move(best.move), best.score, hashtypename[hashtype]);
 
     /* show the pv */
     if(depth == SEARCHDEPTH) {
