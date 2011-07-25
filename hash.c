@@ -90,8 +90,7 @@ MoveScore hash_retrieve(uint64_t key, uint8_t depth, int alpha, int beta,
         return fail;
 
     /* if the cached search wasn't deep enough, we don't want it */
-    /* NOTE: THIS SHOULD SAY '<' FOR GENERAL USE!!! (?) */
-    if(e.depth != depth)
+    if(e.depth < depth)
         return fail;
 
     /* if we know the exact score, return it */
@@ -99,12 +98,12 @@ MoveScore hash_retrieve(uint64_t key, uint8_t depth, int alpha, int beta,
         return e.move;
 
     /* if we have a lower bound that is not lower than beta, return it. */
-    /*if(e.type == ATLEAST && e.move.score >= beta)
-        return e.move;*/
+    if(e.type == ATLEAST && e.move.score >= beta)
+        return e.move;
 
     /* if we have an upper bound that is not higher than alpha, return it */
-    /*if(e.type == ATMOST && e.move.score <= alpha)
-        return e.move;*/
+    if(e.type == ATMOST && e.move.score <= alpha)
+        return e.move;
 
     /* if all else fails, fail */
     return fail;
