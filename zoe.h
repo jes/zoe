@@ -109,6 +109,7 @@ char *xboard_move(Move m);
 int is_xboard_move(const char *move);
 Move get_xboard_move(const char *move);
 void apply_move(Game *game, Move m);
+void generate_movelist(Game *game, Move *moves, int *nmoves);
 uint64_t generate_moves(Game *game, int tile);
 int is_valid_move(Game game, Move m, int print);
 

@@ -219,6 +219,58 @@ void apply_move(Game *game, Move m) {
     }*/
 }
 
+/* return a list of moves that can be played from the given position */
+void generate_movelist(Game *game, Move *movelist, int *nmoves) {
+    uint64_t pieces = game->board.b[game->turn][OCCUPIED];
+    Move m;
+    int nmove = 0;
+
+    /* for each of the pieces... */
+    while(pieces) {
+        /* pick the next piece */
+        int piece = bsf(pieces);
+
+        /* remove this piece from the set */
+        pieces ^= 1ull << piece;
+
+        /* set the start square of the moves */
+        m.begin = piece;
+
+        /* generate the moves for this piece */
+        uint64_t moves = generate_moves(game, piece);
+
+        /* for each of this piece's moves */
+        while(moves) {
+            /* pick the next move */
+            int move = bsf(moves);
+
+            /* remove this move from the set */
+            moves ^= 1ull << move;
+
+            /* set the end square of this move */
+            m.end = move;
+
+            /* promote pawns */
+            if(game->board.mailbox[piece] == PAWN
+                    && (m.end / 8 == 0 || m.end / 8 == 7)) {
+                m.promote = KNIGHT;
+                movelist[nmove++] = m;
+                m.promote = BISHOP;
+                movelist[nmove++] = m;
+                m.promote = ROOK;
+                movelist[nmove++] = m;
+                m.promote = QUEEN;
+                movelist[nmove++] = m;
+            } else {
+                m.promote = 0;
+                movelist[nmove++] = m;
+            }
+        }
+    }
+
+    *nmoves = nmove;
+}
+
 /* return the set of all squares the given piece is able to move to, without
  * considering a king left in check */
 uint64_t generate_moves(Game *game, int tile) {

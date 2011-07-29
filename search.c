@@ -5,10 +5,29 @@
 
 #include "zoe.h"
 
-#define SEARCHDEPTH 6
+#define SEARCHDEPTH 7
 
 static int piece_score[6] = { /* pawn */ 100, /* knight */ 300,
     /* bishop */ 325, /* rook */ 500, /* queen */ 900, /* king */ 0 };
+
+Game *movecmp_game;
+
+/* compare two moves for sorting */
+static int movecmp(const void *m1, const void *m2) {
+    Move *a = (Move *)m1, *b = (Move *)m2;
+    Game *g = movecmp_game;
+    int n1 = 0, n2 = 0;
+
+    /* if either move ends in an occupied square, that move is a capture and
+     * should come sooner in the sort order.
+     */
+    if(g->board.occupied && (1ull << a->end))
+        n1 = piece_score[g->board.mailbox[a->end]];
+    if(g->board.occupied && (1ull << b->end))
+        n2 = piece_score[g->board.mailbox[b->end]];
+
+    return n2 - n1;
+}
 
 /* return the value of the game for the player currently on move */
 int evaluate(Game *game) {
@@ -27,14 +46,15 @@ int evaluate(Game *game) {
 
 /* return the best move from the current position along with it's score */
 MoveScore alphabeta(Game game, int alpha, int beta, int depth) {
+    Move moves[121];/* 121 moves is enough for anybody */
+    int nmoves;
+    int move;
     Move m;
     MoveScore best, new;
     Game orig_game;
-    uint64_t pieces = game.board.b[game.turn][OCCUPIED];
     int legal_move = 0;
     int hashtype = ATMOST;
     int i;
-    int print = 0;
 
     /* store a copy of the game */
     orig_game = game;
@@ -46,7 +66,6 @@ MoveScore alphabeta(Game game, int alpha, int beta, int depth) {
         /* TODO: ensure that the move is valid (i.e. that this zobrist key is
          * not just a coincidence).
          */
-        print = 0;
         return new;
     }
 
@@ -66,129 +85,83 @@ MoveScore alphabeta(Game game, int alpha, int beta, int depth) {
         return best;
     }
 
-    /* for each of our pieces... */
-    while(pieces) {
-        /* pick the next piece */
-        int piece = bsf(pieces);
+    /* get a list of valid moves */
+    generate_movelist(&game, moves, &nmoves);
 
-        /* remove this piece from the set */
-        pieces ^= 1ull << piece;
+    /* sort the moves */
+    movecmp_game = &game;
+    qsort(moves, nmoves, sizeof(Move), movecmp);
 
-        /* set the start square of the moves */
-        m.begin = piece;
+    /* for each of the moves */
+    for(move = 0; move < nmoves; move++) {
+        m = moves[move];
 
-        /* reset game state */
+        /* reset the game state */
         game = orig_game;
 
-        /* generate the moves for this piece */
-        uint64_t moves = generate_moves(&game, piece);
+        /* make the move */
+        apply_move(&game, m);
 
-        /* for each of this piece's moves */
-        while(moves) {
-            /* pick the next move */
-            int move = bsf(moves);
-
-            /* remove this move from the set */
-            moves ^= 1ull << move;
-
-            /* set the end square of this move */
-            m.end = move;
-
-            /* reset game state */
-            game = orig_game;
-
-            /* TODO: try each possiblity of pawn promotion */
-            if(game.board.mailbox[piece] == PAWN
-                    && (m.end / 8 == 0 || m.end / 8 == 7))
-                m.promote = QUEEN;
-            else
-                m.promote = 0;
-
-            if(print)
-                printf("considering playing %s\n", xboard_move(m));
-
-            /* make the move */
-            apply_move(&game, m);
-
-            /* don't search this move if the king is left in check */
-            if(king_in_check(&(game.board), !game.turn)) {
-                if(depth == SEARCHDEPTH && print)
-                    printf("%s leaves the king in check\n", xboard_move(m));
-
-                continue;
-            }
-
-            /* if this is the first legal move, store it as the best so that
-             * we at least have a move to play, and remember that we have found
-             * a legal move.
-             */
-            if(!legal_move) {
-                best.move = m;
-                legal_move = 1;
-            }
-
-            if(print) {
-                if(depth == SEARCHDEPTH)
-                    printf("new = alphabeta(game, -INFINITY, INFINITY, %d);\n",
-                            depth - 1);
-                else
-                    printf("new = alphabeta(game, %d, %d, %d);\n", -beta,
-                            -best.score, depth - 1);
-            }
-
-            /* search the next level; we need to do a full search from the top
-             * level in order to get the pv for each move.
-             */
+        /* don't search this move if the king is left in check */
+        if(king_in_check(&(game.board), !game.turn)) {
             if(depth == SEARCHDEPTH)
-                new = alphabeta(game, -INFINITY, INFINITY, depth - 1);
-            else
-                new = alphabeta(game, -beta, -best.score, depth - 1);
-            new.score = -new.score;
+                printf("%s leaves the king in check\n", xboard_move(m));
 
-            if(print)
-                printf("new.score = %d\n", new.score);
+            continue;
+        }
 
-            /* show the expected line of play from this move at top level */
-            if(depth == SEARCHDEPTH) {
-                printf("%s: ", xboard_move(m));
-                for(i = 0; i < 16 && new.pv[i].begin < 64; i++) {
-                    printf("%s ", xboard_move(new.pv[i]));
-                }
-                printf("%d\n", new.score);
+        /* if this is the first legal move, store it as the best so that
+         * we at least have a move to play, and remember that we have found
+         * a legal move.
+         */
+        if(!legal_move) {
+            best.move = m;
+            legal_move = 1;
+        }
+
+        /* search the next level; we need to do a full search from the top
+         * level in order to get the pv for each move.
+         */
+        if(depth == SEARCHDEPTH)
+            new = alphabeta(game, -INFINITY, INFINITY, depth - 1);
+        else
+            new = alphabeta(game, -beta, -best.score, depth - 1);
+        new.score = -new.score;
+
+        /* show the expected line of play from this move at top level */
+        if(depth == SEARCHDEPTH) {
+            printf("%s: ", xboard_move(m));
+            for(i = 0; i < 16 && new.pv[i].begin < 64; i++) {
+                printf("%s ", xboard_move(new.pv[i]));
             }
+            printf("%d\n", new.score);
+        }
 
-            /* beta cut-off */
-            if(new.score >= beta) {
-                best.move = m;
-                best.score = beta;
-                hash_store(orig_game.board.zobrist, depth, ATLEAST, best,
-                        orig_game.turn);
-                if(print)
-                    printf("depth %d, beta cutoff with new.score=%d >= beta=%d; %s\n", depth, new.score, beta, xboard_move(best.move));
-                return best;
+        /* beta cut-off */
+        if(new.score >= beta) {
+            best.move = m;
+            best.score = beta;
+            hash_store(orig_game.board.zobrist, depth, ATLEAST, best,
+                    orig_game.turn);
+            return best;
+        }
+
+        /* new best move? */
+        if(new.score > best.score) {
+            /* best movescore has the move we should play and the score we
+             * got from the child alphabeta.
+             */
+            best.move = m;
+            best.score = new.score;
+
+            /* we know the score for this node is exactly best.score */
+            hashtype = EXACTLY;
+
+            /* copy the pv from the best move */
+            for(i = 0; i < 15; i++) {
+                best.pv[i+1] = new.pv[i];
             }
-
-            /* new best move? */
-            if(new.score > best.score) {
-                /* best movescore has the move we should play and the score we
-                 * got from the child alphabeta.
-                 */
-                best.move = m;
-                best.score = new.score;
-
-                if(print)
-                    printf("depth %d, new.score=%d > best.score=%d; %s\n",
-                            depth, new.score, best.score, xboard_move(m));
-
-                /* we know the score for this node is exactly best.score */
-                hashtype = EXACTLY;
-
-                /* copy the pv from the best move */
-                for(i = 0; i < 15; i++) {
-                    best.pv[i+1] = new.pv[i];
-                }
-                best.pv[0] = m;
-            }
+            best.pv[0] = m;
         }
     }
 
@@ -217,11 +190,6 @@ MoveScore alphabeta(Game game, int alpha, int beta, int depth) {
     }
 
     /* TODO: deal with post mode */
-
-    char *hashtypename[3] = {"exact", "atleast", "atmost"};
-    if(print)
-        printf("depth %d about to return %s (%d), hashtype=%s\n", depth,
-                xboard_move(best.move), best.score, hashtypename[hashtype]);
 
     /* show the pv */
     if(depth == SEARCHDEPTH) {
