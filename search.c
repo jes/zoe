@@ -203,9 +203,36 @@ MoveScore alphabeta(Game game, int alpha, int beta, int depth) {
     return best;
 }
 
+/* return the best move from the current position along with it's score */
+MoveScore iterative_deepening(Game game) {
+    int d;
+    MoveScore best;
+
+    /* iteratively deepen until the maximum depth is reached */
+    for(d = 1; d <= SEARCHDEPTH; d++) {
+        best = alphabeta(game, -INFINITY, INFINITY, d);
+
+        /* if we have no legal moves, return now */
+        if(best.move.begin == 64)
+            return best;
+
+        /* if this is a mate, return now */
+        if(best.score == INFINITY) {
+            printf("# Mate in %d.\n", d/2);
+            return best;
+        }
+
+        /* TODO: stop searching if the entire tree is searched */
+
+        /* TODO: stop searching if time limit reached */
+    }
+
+    return best;
+}
+
 /* return the best move for the current player */
 Move best_move(Game game) {
-    MoveScore best = alphabeta(game, -INFINITY, INFINITY, SEARCHDEPTH);
+    MoveScore best = iterative_deepening(game);
 
     if(best.move.begin == 64) { /* we had no legal moves */
         if(best.score == 0)
