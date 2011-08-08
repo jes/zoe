@@ -21,12 +21,46 @@ static int movecmp(const void *m1, const void *m2) {
     /* if either move ends in an occupied square, that move is a capture and
      * should come sooner in the sort order.
      */
-    if(g->board.occupied && (1ull << a->end))
+    if(g->board.occupied & (1ull << a->end))
         n1 = piece_score[g->board.mailbox[a->end]];
-    if(g->board.occupied && (1ull << b->end))
+    if(g->board.occupied & (1ull << b->end))
         n2 = piece_score[g->board.mailbox[b->end]];
 
     return n2 - n1;
+}
+
+/* sort the list of moves to put the ones most likely to be good first */
+static void sort_moves(Move *moves, int nmoves, Game *game) {
+    MoveScore table = hash_retrieve(game->board.zobrist, 0, -INFINITY,
+            INFINITY, game->turn);
+    int firstcap = 0;
+    int firstnot = 0;
+    Move tmp;
+
+    while(1) {
+        /* look for the next capture move */
+        while(!(game->board.occupied & (1ull << moves[firstcap].end))
+                && firstcap < nmoves)
+            firstcap++;
+
+        if(firstcap >= nmoves)
+            return;
+
+        /* swap the capture with the non-capture */
+        tmp = moves[firstcap];
+        moves[firstcap] = moves[firstnot];
+        moves[firstnot] = tmp;
+
+        firstnot++;
+
+        /* look for the next non-capture move */
+        while((game->board.occupied & (1ull << moves[firstcap].end))
+                    && firstnot < nmoves)
+                firstnot++;
+
+        if(firstnot >= nmoves)
+            return;
+    }
 }
 
 /* return the value of the game for the player currently on move */
@@ -89,8 +123,7 @@ MoveScore alphabeta(Game game, int alpha, int beta, int depth) {
     generate_movelist(&game, moves, &nmoves);
 
     /* sort the moves */
-    movecmp_game = &game;
-    qsort(moves, nmoves, sizeof(Move), movecmp);
+    sort_moves(moves, nmoves, &game);
 
     /* for each of the moves */
     for(move = 0; move < nmoves; move++) {
