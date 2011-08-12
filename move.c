@@ -485,7 +485,7 @@ int piece_square_score(int piece, int square, int colour) {
     x = square % 8;
     y = square / 8;
     square = x + (7 - y) * 8;
-    if(colour == WHITE)
+    if(colour == BLACK)
         return piece_score[piece] + piece_square[piece][63 - square];
     else
         return piece_score[piece] + piece_square[piece][square];
