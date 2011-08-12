@@ -1,0 +1,4 @@
+#!/bin/sh
+# run zoe with the output tee'd to zoe.out
+
+./zoe $@ | tee zoe.out
