@@ -10,6 +10,7 @@
 #include <string.h>
 #include <stdint.h>
 #include <stdlib.h>
+#include <unistd.h>
 #include <stdio.h>
 
 #define WHITE 0
@@ -50,6 +51,7 @@ typedef struct Game {
     uint8_t turn;
     uint8_t engine;
     uint8_t ep;
+    int eval;
 } Game;
 
 typedef struct Move {
@@ -112,9 +114,9 @@ void apply_move(Game *game, Move m);
 void generate_movelist(Game *game, Move *moves, int *nmoves);
 uint64_t generate_moves(Game *game, int tile);
 int is_valid_move(Game game, Move m, int print);
+int piece_square_score(int piece, int square, int colour);
 
 /* search.c */
-int evaluate(Game *game);
 Move best_move(Game game);
 
 /* zoe.c */

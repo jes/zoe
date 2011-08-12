@@ -15,7 +15,8 @@ int main(int argc, char **argv) {
     size_t len = 0;
 
     /* don't quit when xboard sends SIGINT */
-    signal(SIGINT, SIG_IGN);
+    if(!isatty(STDIN_FILENO))
+        signal(SIGINT, SIG_IGN);
 
     /* force line buffering on stdin and stdout */
     setvbuf(stdin, NULL, _IOLBF, 0);
@@ -78,7 +79,7 @@ int main(int argc, char **argv) {
 
                 /* give game information */
                 draw_board(&(game.board));
-                printf("# current eval = %d\n", evaluate(&game));
+                printf("# current eval = %d\n", game.eval);
             }
         }
 
@@ -93,7 +94,7 @@ int main(int argc, char **argv) {
 
                 /* give game information */
                 draw_board(&(game.board));
-                printf("# current eval = %d\n", -evaluate(&game));
+                printf("# current eval = %d\n", -game.eval);
 
                 /* tell xboard about our move */
                 printf("move %s\n", xboard_move(m));

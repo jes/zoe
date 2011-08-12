@@ -5,6 +5,73 @@
 
 #include "zoe.h"
 
+static int piece_score[6] = { /* pawn */ 100, /* knight */ 320,
+    /* bishop */ 330, /* rook */ 500, /* queen */ 900, /* king */ 0 };
+
+/* http://chessprogramming.wikispaces.com/Simplified+evaluation+function */
+static int piece_square[6][64] = {
+    { /* pawn */
+     0,  0,  0,  0,  0,  0,  0,  0,
+    60, 60, 60, 60, 60, 60, 60, 60,
+    10, 20, 40, 50, 50, 40, 20, 10,
+     5,  5, 10, 45, 45, 10,  5,  5,
+     0,  0,  0, 40, 40,  0,  0,  0,
+     5, -5,-10,  0,  0,-10, -5,  5,
+     5, 10, 10,-20,-20, 10, 10,  5,
+     0,  0,  0,  0,  0,  0,  0,  0
+    },
+    { /* knight */
+    -50,-40,-30,-30,-30,-30,-40,-50,
+    -40,-20,  0,  0,  0,  0,-20,-40,
+    -30,  0, 10, 15, 15, 10,  0,-30,
+    -30,  5, 15, 20, 20, 15,  5,-30,
+    -30,  0, 15, 20, 20, 15,  0,-30,
+    -30,  5, 10, 15, 15, 10,  5,-30,
+    -40,-20,  0,  5,  5,  0,-20,-40,
+    -50,-40,-30,-30,-30,-30,-40,-50,
+    },
+    { /* bishop */
+    -20,-10,-10,-10,-10,-10,-10,-20,
+    -10,  0,  0,  0,  0,  0,  0,-10,
+    -10,  0,  5, 10, 10,  5,  0,-10,
+    -10,  5,  5, 10, 10,  5,  5,-10,
+    -10,  0, 10, 10, 10, 10,  0,-10,
+    -10, 10, 10, 10, 10, 10, 10,-10,
+    -10,  5,  0,  0,  0,  0,  5,-10,
+    -20,-10,-10,-10,-10,-10,-10,-20,
+    },
+    { /* rook */
+      0,  0,  0,  0,  0,  0,  0,  0,
+      5, 10, 10, 10, 10, 10, 10,  5,
+     -5,  0,  0,  0,  0,  0,  0, -5,
+     -5,  0,  0,  0,  0,  0,  0, -5,
+     -5,  0,  0,  0,  0,  0,  0, -5,
+     -5,  0,  0,  0,  0,  0,  0, -5,
+     -5,  0,  0,  0,  0,  0,  0, -5,
+      0,  0,  0,  5,  5,  0,  0,  0
+    },
+    { /* queen */
+    -20,-10,-10, -5, -5,-10,-10,-20,
+    -10,  0,  0,  0,  0,  0,  0,-10,
+    -10,  0,  5,  5,  5,  5,  0,-10,
+     -5,  0,  5,  5,  5,  5,  0, -5,
+      0,  0,  5,  5,  5,  5,  0, -5,
+    -10,  5,  5,  5,  5,  5,  0,-10,
+    -10,  0,  5,  0,  0,  0,  0,-10,
+    -20,-10,-10, -5, -5,-10,-10,-20
+    },
+    { /* king (middle-game) */
+    -30,-40,-40,-50,-50,-40,-40,-30,
+    -30,-40,-40,-50,-50,-40,-40,-30,
+    -30,-40,-40,-50,-50,-40,-40,-30,
+    -30,-40,-40,-50,-50,-40,-40,-30,
+    -20,-30,-30,-40,-40,-30,-30,-20,
+    -10,-20,-20,-20,-20,-20,-20,-10,
+     20, 20,  0,  0,  0,  0, 20, 20,
+     20, 30, 10,  0,  0, 10, 30, 20
+    }
+};
+
 /* return a pointer to a static char array containing the xboard representation
  * of the given move.
  */
@@ -108,6 +175,7 @@ void apply_move(Game *game, Move m) {
     if(beginpiece == PAWN && (m.begin == ((5 - begincolour * 3) * 8 + game->ep))
                 && ((m.end % 8) == game->ep)) {
         eptile = (4 - begincolour) * 8 + game->ep;
+        game->eval += piece_square_score(PAWN, eptile, !game->turn);
         epbit = 1ull << eptile;
         board->mailbox[eptile] = EMPTY;
         board->occupied ^= epbit;
@@ -122,6 +190,7 @@ void apply_move(Game *game, Move m) {
         game->ep = 9;
 
     /* remove the piece from the begin square */
+    game->eval -= piece_square_score(beginpiece, m.begin, game->turn);
     board->mailbox[m.begin] = EMPTY;
     board->occupied ^= beginbit;
     board->b[begincolour][beginpiece] ^= beginbit;
@@ -131,6 +200,7 @@ void apply_move(Game *game, Move m) {
 
     /* remove the piece from the end square if necessary */
     if(endpiece != EMPTY) {
+        game->eval += piece_square_score(endpiece, m.end, !game->turn);
         board->b[endcolour][endpiece] ^= endbit;
         board->b[endcolour][OCCUPIED] ^= endbit;
     }
@@ -141,6 +211,7 @@ void apply_move(Game *game, Move m) {
         beginpiece = m.promote;
 
     /* insert the piece at the end square */
+    game->eval += piece_square_score(beginpiece, m.end, game->turn);
     board->mailbox[m.end] = beginpiece;
     board->occupied |= endbit;
     board->b[begincolour][beginpiece] |= endbit;
@@ -189,21 +260,21 @@ void apply_move(Game *game, Move m) {
                 m2.end = m.end - 1;
             }
 
-            /* skip the opposing player's turn because we need to move another
-             * piece
-             */
-            game->turn = !game->turn;
-
             /* make sure we don't try to promote */
             m2.promote = 0;
 
             /* apply the rook move */
             apply_move(game, m2);
+
+            /* undo the turn toggle */
+            game->turn = !game->turn;
+            game->eval = -game->eval;
         }
     }
 
     /* toggle current player */
     game->turn = !game->turn;
+    game->eval = -game->eval;
 
     /* check board consistency */
     /*if(!consistent_board(&(game->board))) {
@@ -253,13 +324,13 @@ void generate_movelist(Game *game, Move *movelist, int *nmoves) {
             /* promote pawns */
             if(game->board.mailbox[piece] == PAWN
                     && (m.end / 8 == 0 || m.end / 8 == 7)) {
-                m.promote = KNIGHT;
+                m.promote = QUEEN;
                 movelist[nmove++] = m;
-                m.promote = BISHOP;
+                m.promote = KNIGHT;
                 movelist[nmove++] = m;
                 m.promote = ROOK;
                 movelist[nmove++] = m;
-                m.promote = QUEEN;
+                m.promote = BISHOP;
                 movelist[nmove++] = m;
             } else {
                 m.promote = 0;
@@ -392,7 +463,8 @@ int is_valid_move(Game game, Move m, int print) {
 
     /* ensure that the king is not left in check
      * NOTE: we apply_move() here, so the state of the game is changed; this
-     * check must be done last */
+     * check must be done last
+     */
     apply_move(&game2, m);
     if(king_in_check(&(game2.board), game.turn)) {
         if(print)
@@ -402,4 +474,19 @@ int is_valid_move(Game game, Move m, int print) {
 
     /* hasn't failed any validation, must be a valid move */
     return 1;
+}
+
+/* return the score for the given piece on the given square for the given
+ * colour
+ */
+int piece_square_score(int piece, int square, int colour) {
+    int x, y;
+
+    x = square % 8;
+    y = square / 8;
+    square = x + (7 - y) * 8;
+    if(colour == WHITE)
+        return piece_score[piece] + piece_square[piece][63 - square];
+    else
+        return piece_score[piece] + piece_square[piece][square];
 }

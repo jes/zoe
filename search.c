@@ -5,29 +5,7 @@
 
 #include "zoe.h"
 
-#define SEARCHDEPTH 7
-
-static int piece_score[6] = { /* pawn */ 100, /* knight */ 300,
-    /* bishop */ 325, /* rook */ 500, /* queen */ 900, /* king */ 0 };
-
-Game *movecmp_game;
-
-/* compare two moves for sorting */
-static int movecmp(const void *m1, const void *m2) {
-    Move *a = (Move *)m1, *b = (Move *)m2;
-    Game *g = movecmp_game;
-    int n1 = 0, n2 = 0;
-
-    /* if either move ends in an occupied square, that move is a capture and
-     * should come sooner in the sort order.
-     */
-    if(g->board.occupied & (1ull << a->end))
-        n1 = piece_score[g->board.mailbox[a->end]];
-    if(g->board.occupied & (1ull << b->end))
-        n2 = piece_score[g->board.mailbox[b->end]];
-
-    return n2 - n1;
-}
+#define SEARCHDEPTH 6
 
 /* sort the list of moves to put the ones most likely to be good first */
 static void sort_moves(Move *moves, int nmoves, Game *game) {
@@ -38,6 +16,14 @@ static void sort_moves(Move *moves, int nmoves, Game *game) {
     Move tmp;
 
     while(1) {
+        /* look for the next non-capture move */
+        while((game->board.occupied & (1ull << moves[firstnot].end))
+                    && firstnot < nmoves)
+                firstnot++;
+
+        if(firstnot >= nmoves)
+            return;
+
         /* look for the next capture move */
         while(!(game->board.occupied & (1ull << moves[firstcap].end))
                 && firstcap < nmoves)
@@ -52,30 +38,7 @@ static void sort_moves(Move *moves, int nmoves, Game *game) {
         moves[firstnot] = tmp;
 
         firstnot++;
-
-        /* look for the next non-capture move */
-        while((game->board.occupied & (1ull << moves[firstcap].end))
-                    && firstnot < nmoves)
-                firstnot++;
-
-        if(firstnot >= nmoves)
-            return;
     }
-}
-
-/* return the value of the game for the player currently on move */
-int evaluate(Game *game) {
-    int score = 0;
-    int piece;
-
-    for(piece = 0; piece < 5; piece++) {
-        score += piece_score[piece]
-            * count_ones(game->board.b[game->turn][piece]);
-        score -= piece_score[piece]
-            * count_ones(game->board.b[!game->turn][piece]);
-    }
-
-    return score;
 }
 
 /* return the best move from the current position along with it's score */
@@ -112,7 +75,7 @@ MoveScore alphabeta(Game game, int alpha, int beta, int depth) {
     /* if at a leaf node, return position evaluation */
     if(depth == 0) {
         best.move.begin = 64;
-        best.score = evaluate(&game);
+        best.score = game.eval;
         best.pv[0].begin = 64;
         hash_store(orig_game.board.zobrist, depth, EXACTLY, best,
                 orig_game.turn);
