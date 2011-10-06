@@ -87,7 +87,6 @@ int main(int argc, char **argv) {
         if(game.turn == game.engine) {
             /* find the best move */
             Move m = best_move(game);
-
             /* only do anything if we have a legal move */
             if(m.begin != 64) {
                 apply_move(&game, m);
@@ -99,6 +98,20 @@ int main(int argc, char **argv) {
                 /* tell xboard about our move */
                 printf("move %s\n", xboard_move(m));
                 printf("# ! move %s\n", xboard_move(m));
+
+                /* claim victory or draw if our opponent has no response */
+                MoveScore response = alphabeta(game, -INFINITY, INFINITY, 1);
+                printf("best response score = %d (move = %s)\n", response.score, xboard_move(response.move));
+                if(response.move.begin == 64) {
+                    if(response.score == 0)
+                        printf("1/2-1/2 {Stalemate}\n");
+                    else /* response.score == -INFINITY */ {
+                        if(game.turn == WHITE)
+                            printf("0-1 {Black mates}\n");
+                        else
+                            printf("1-0 {White mates}\n");
+                    }
+                }
             }
         }
     }

@@ -117,6 +117,7 @@ int is_valid_move(Game game, Move m, int print);
 int piece_square_score(int piece, int square, int colour);
 
 /* search.c */
+MoveScore alphabeta(Game game, int alpha, int beta, int depth);
 Move best_move(Game game);
 
 /* zoe.c */

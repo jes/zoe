@@ -172,7 +172,7 @@ void apply_move(Game *game, Move m) {
     endcolour = !(board->b[WHITE][OCCUPIED] & endbit);
 
     /* delete a pawn if taken en passant */
-    if(beginpiece == PAWN && (m.begin == ((5 - begincolour * 3) * 8 + game->ep))
+    if(beginpiece == PAWN && ((m.end / 8) == (5 - begincolour * 3))
                 && ((m.end % 8) == game->ep)) {
         eptile = (4 - begincolour) * 8 + game->ep;
         game->eval += piece_square_score(PAWN, eptile, !game->turn);

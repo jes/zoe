@@ -22,7 +22,7 @@ static void sort_moves(Move *moves, int nmoves, Game *game) {
                 firstnot++;
 
         if(firstnot >= nmoves)
-            return;
+            break;
 
         /* look for the next capture move */
         while(!(game->board.occupied & (1ull << moves[firstcap].end))
@@ -30,7 +30,7 @@ static void sort_moves(Move *moves, int nmoves, Game *game) {
             firstcap++;
 
         if(firstcap >= nmoves)
-            return;
+            break;
 
         /* swap the capture with the non-capture */
         tmp = moves[firstcap];
@@ -240,8 +240,5 @@ Move best_move(Game game) {
                 printf("1-0 {White mates}\n");
         }
     }
-
-    /* TODO: consider our enemy's options and see if we've won, etc. */
-
     return best.move;
 }
