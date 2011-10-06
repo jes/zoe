@@ -87,7 +87,7 @@ char *xboard_move(Move m) {
     
     /* pawn promotions */
     if(m.promote > 0 && m.promote < 5)
-        move[i++] = ".kbrq"[m.promote];
+        move[i++] = ".nbrq"[m.promote];
 
     move[i++] = '\0';
 
@@ -105,7 +105,9 @@ int is_xboard_move(const char *move) {
             || move[2] < 'a' || move[2] > 'h' || move[3] < '1'|| move[3] > '8')
         return 0;
 
-    /* don't validate the promotion piece... */
+    /* validate the promotion piece */
+    if(move[4] && !strchr("nbrq", move[4]))
+        return 0;
 
     return 1;
 }
@@ -120,7 +122,7 @@ Move get_xboard_move(const char *move) {
 
     /* set promotion piece */
     switch(move[4]) {
-        case 'k': m.promote = KNIGHT; break;
+        case 'n': m.promote = KNIGHT; break;
         case 'b': m.promote = BISHOP; break;
         case 'r': m.promote = ROOK;   break;
         case 'q': m.promote = QUEEN;  break;
