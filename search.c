@@ -4,8 +4,11 @@
  */
 
 #include "zoe.h"
+#include <time.h>
 
 #define SEARCHDEPTH 6
+
+static int nodes;
 
 /* sort the list of moves to put the ones most likely to be good first */
 static void sort_moves(Move *moves, int nmoves, Game *game) {
@@ -52,6 +55,8 @@ MoveScore alphabeta(Game game, int alpha, int beta, int depth) {
     int legal_move = 0;
     int hashtype = ATMOST;
     int i;
+
+    nodes++;
 
     /* store a copy of the game */
     orig_game = game;
@@ -228,7 +233,12 @@ MoveScore iterative_deepening(Game game) {
 
 /* return the best move for the current player */
 Move best_move(Game game) {
+    clock_t start = clock();
+    nodes = 0;
+
     MoveScore best = iterative_deepening(game);
+
+    printf("# %.2f n/s\n", (float)(nodes * CLOCKS_PER_SEC) / (clock() - start));
 
     if(best.move.begin == 64) { /* we had no legal moves */
         if(best.score == 0)

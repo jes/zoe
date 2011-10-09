@@ -11,11 +11,10 @@ void reset_game(Game *game) {
 
     reset_board(&(game->board));
 
-    for(i = 0; i < 2; i++) {
-        /* set castling rights for each player for each side */
+    /* set castling rights for each player for each side */
+    for(i = 0; i < 2; i++)
         for(j = 0; j < 2; j++)
             game->can_castle[i][j] = 1;
-    }
 
     game->quiet_moves = 0;
     game->turn = WHITE;
