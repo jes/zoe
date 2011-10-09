@@ -54,6 +54,7 @@ void edit_mode(Game *g) {
         else if(strcmp(line, "#") == 0) {
             /* clear the board */
             g->eval = 0;
+            clear_board(&(g->board));
         }
         else if(strcmp(line, ".") == 0) {
             /* leave edit mode */

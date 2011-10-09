@@ -84,6 +84,7 @@ extern uint64_t king_moves[64];
 extern uint64_t knight_moves[64];
 
 void reset_board(Board *board);
+void clear_board(Board *board);
 int consistent_board(Board *board);
 void draw_board(Board *board);
 void draw_bitboard(uint64_t board);

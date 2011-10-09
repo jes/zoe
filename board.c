@@ -66,6 +66,26 @@ void reset_board(Board *board) {
     board->zobrist = 0;
 }
 
+/* remove all pieces from the given board */
+void clear_board(Board *board) {
+    int i, j;
+
+    /* fill in empty for entire mailbox */
+    for(i = 0; i < 64; i++)
+        board->mailbox[i] = EMPTY;
+
+    /* set all bitboards to empty */
+    for(i = 0; i < 2; i++)
+        for(j = 0; j < 7; j++)
+            board->b[i][j] = 0;
+
+    board->occupied = 0;
+
+    /* TODO: Set zobrist properly (change reset_board to place pieces rather
+     * than just filling them in so that zobrist 0 = empty board.
+     */
+}
+
 /* return 1 if the given board is internally consistent and 0 otherwise */
 int consistent_board(Board *board) {
     int i, c, p;
