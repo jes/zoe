@@ -484,6 +484,9 @@ int is_valid_move(Game game, Move m, int print) {
 int piece_square_score(int piece, int square, int colour) {
     int x, y;
 
+    if(piece == EMPTY)
+        return 0;
+
     x = square % 8;
     y = square / 8;
     square = x + (7 - y) * 8;
