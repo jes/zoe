@@ -12,8 +12,6 @@ static int nodes;
 
 /* sort the list of moves to put the ones most likely to be good first */
 static void sort_moves(Move *moves, int nmoves, Game *game) {
-    MoveScore table = hash_retrieve(game->board.zobrist, 0, -INFINITY,
-            INFINITY, game->turn);
     int firstcap = 0;
     int firstnot = 0;
     Move tmp;
